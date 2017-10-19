@@ -1,0 +1,7 @@
+.DS_Store
+/go/vendor
+npm-debug.log
+/js/node_modules
+/js/build
+/php/vendor
+c.out
