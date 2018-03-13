@@ -7,7 +7,7 @@ import {
   DENY,
   PRIV
 } from './util';
-import { isPlainObject } from 'lodash';
+import isPlainObject from 'lodash.isplainobject';
 
 const RSRC_TYPE = 'rsrc_type';
 const RSRC_MATCH = 'rsrc_match';

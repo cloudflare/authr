@@ -9,7 +9,7 @@ npm install --save @cloudflare/authr
 
 in a language that has stronger typing, you might use an interface to ensure your objects have certain functionality. but since javascript doesn't have such a thing, we can use [symbols](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Symbol).
 
-symbols have a lot of uses, but for permission's purposes, it guarantees that a certain object has explicitly implemented certain functionality specifically for authr; kind of like an interface! these symbols are made available for use by the package as exported constants.
+symbols have a lot of uses, but for authr's purposes, it guarantees that a certain object has explicitly implemented certain functionality specifically for authr; kind of like an interface! these symbols are made available for use by the package as exported constants.
 
 *note: a **lot** of important details about the philosophy and inner-workings of this library are glossed over. if you have not read the main README yet, it is highly recommended that you do so: [cloudflare/authr/README.md](https://github.com/cloudflare/authr/blob/master/README.md)*
 
@@ -90,12 +90,13 @@ returns `true` if they are allowed, and `false` if they are not.
 
 ###### example
 ```js
-import Authr, {
+import {
+    can
     GET_RULES,
     GET_RESOURCE_TYPE,
     GET_RESOURCE_ATTRIBUTE,
     Rule
-} from '@cloudflare/permission';
+} from '@cloudflare/authr';
 
 var admin = {
     [GET_RULES]: () => ([
@@ -140,8 +141,8 @@ var zones = {
     }
 };
 
-console.log(Authr.can(admin, 'delete', zones['123'])); // => true
-console.log(Authr.can(user, 'delete', zones['567'])); // => false
-console.log(Authr.can(admin, 'do_admin_things', zones['123'])); // true
+console.log(can(admin, 'delete', zones['123'])); // => true
+console.log(can(user, 'delete', zones['567'])); // => false
+console.log(can(admin, 'do_admin_things', zones['123'])); // true
 
 ```

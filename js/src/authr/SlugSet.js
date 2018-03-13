@@ -1,6 +1,9 @@
 'use strict';
 
-import { isPlainObject as isObject, isString, isArray, keys } from 'lodash';
+import isPlainObject from 'lodash.isplainobject';
+import isString from 'lodash.isstring';
+import isArray from 'lodash.isarray';
+import keys from 'lodash.keys';
 import AuthrError from './AuthrError';
 import { PRIV } from './util';
 
@@ -19,7 +22,7 @@ export default class SlugSet {
     if (spec === '*') {
       self.mode = MODE_WILDCARD;
     } else {
-      if (isObject(spec)) {
+      if (isPlainObject(spec)) {
         let [ modifier ] = keys(spec);
         if (modifier !== NOT) {
           throw new AuthrError('Malformed slug set');

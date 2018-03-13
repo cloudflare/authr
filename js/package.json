@@ -1,6 +1,6 @@
 {
   "name": "@cloudflare/authr",
-  "version": "1.0.0-RC1",
+  "version": "1.0.0",
   "description": "a flexible, expressive, language-agnostic access-control framework.",
   "main": "build/authr.js",
   "scripts": {
@@ -18,13 +18,15 @@
   "author": "Nicholas Comer <nicholas@cloudflare.com>",
   "license": "BSD-3-Clause",
   "dependencies": {
-    "lodash": "4.x",
+    "lodash.findindex": "^4.6.0",
     "lodash.has": "^4.5.2",
     "lodash.isarray": "^4.0.0",
     "lodash.isboolean": "^3.0.3",
+    "lodash.isobject": "^3.0.2",
     "lodash.isplainobject": "^4.0.6",
     "lodash.isstring": "^4.0.1",
-    "lodash.keys": "^4.2.0"
+    "lodash.keys": "^4.2.0",
+    "uglifyjs-webpack-plugin": "^1.2.3"
   },
   "devDependencies": {
     "ava": "^0.22.0",

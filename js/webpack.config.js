@@ -1,5 +1,6 @@
+const UglifyJSPlugin = require('uglifyjs-webpack-plugin');
 module.exports = {
-  entry: './src/Authr.js',
+  entry: './src/authr/index.js',
   module: {
     loaders: [
       {
@@ -9,13 +10,13 @@ module.exports = {
       }
     ]
   },
-  externals: {
-    lodash: 'lodash'
-  },
   output: {
     filename: './build/authr.js',
-    library: '@cloudflare/authr',
+    library: 'authr',
     libraryTarget: 'umd'
   },
+  plugins: [
+    new UglifyJSPlugin()
+  ],
   devtool: 'source-map'
 };

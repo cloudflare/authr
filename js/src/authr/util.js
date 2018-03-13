@@ -1,7 +1,12 @@
 'use strict';
 
 import AuthrError from './AuthrError';
-import { findIndex, keys, isObject, isArray, isString, isPlainObject } from 'lodash';
+import isPlainObject from 'lodash.isplainobject';
+import isString from 'lodash.isstring';
+import isArray from 'lodash.isarray';
+import isObject from 'lodash.isobject';
+import keys from 'lodash.keys';
+import findIndex from 'lodash.findindex';
 
 const has = (obj, attr) => Object.prototype.hasOwnProperty.call(obj, attr);
 
