@@ -116,3 +116,5 @@ when you can have the front-end and the back-end of a service seamlessy agreeing
 
 - [ ] create integration tests that ensure implementations agree with each other
 - [ ] finish go implementation
+- [ ] add examples of full apps using authr for access-contro
+- [ ] add documentation about the rules format
