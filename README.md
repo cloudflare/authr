@@ -1,4 +1,4 @@
-# authr 
+# authr [![Build Status](https://travis-ci.org/cloudflare/authr.svg?branch=master)](https://travis-ci.org/cloudflare/authr)
 
 a flexible, expressive, language-agnostic access-control framework.
 
@@ -111,3 +111,8 @@ because the basic unit of permission in authr is a rule defined in JSON, it is p
 an example of this internally at Cloudflare is in a administrative service. by having this permissions defined in JSON, we can simply transfer all the rules down to the front-end (in JavaScript) and allow the front-end to hide/show certain functionality *based* on the permission of whoever is logged in.
 
 when you can have the front-end and the back-end of a service seamlessy agreeing with each other on access-control by only updating a single rule, once, it can lead to much easier maintainability.
+
+## todo
+
+- [ ] create integration tests that ensure implementations agree with each other
+- [ ] finish go implementation

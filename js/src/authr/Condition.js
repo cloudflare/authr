@@ -3,6 +3,7 @@
 import has from 'lodash.has';
 import isArray from 'lodash.isarray';
 import isString from 'lodash.isstring';
+import intersectionWith from 'lodash.intersectionwith';
 import {
   assertIsResource,
   inArrayLooseEquality,
@@ -41,6 +42,18 @@ const OPERATORS = {
       return false;
     }
     return !inArrayLooseEquality(left, right);
+  },
+  '&': (left, right) => {
+    if (!isArray(left) || !isArray(right)) {
+      return false;
+    }
+    return intersectionWith(left, right, (a, b) => a == b).length > 0; // eslint-disable-line eqeqeq
+  },
+  '-': (left, right) => {
+    if (!isArray(left) || !isArray(right)) {
+      return false;
+    }
+    return intersectionWith(left, right, (a, b) => a == b).length === 0; // eslint-disable-line eqeqeq
   }
 };
 
