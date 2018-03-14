@@ -1,11 +1,12 @@
 'use strict';
 
 import test from 'ava';
-import ConditionSet from '../../src/Permission/ConditionSet';
+import ConditionSet from '../../src/authr/ConditionSet';
+import { GET_RESOURCE_TYPE, GET_RESOURCE_ATTRIBUTE } from '../../src/authr';
 
 test('unknown logical conjunctions throws error', t => {
   t.throws(() => {
-    ConditionSet.create({
+    new ConditionSet({ // eslint-disable-line no-new
       $xor: [['@id', '=', '1'], ['@type', '=', 'root']]
     });
   });
@@ -13,23 +14,23 @@ test('unknown logical conjunctions throws error', t => {
 
 test('weird construction values throws error', t => {
   t.throws(() => {
-    ConditionSet.create(8);
+    new ConditionSet(8); // eslint-disable-line no-new
   });
   t.throws(() => {
-    ConditionSet.create({ $and: { $or: ['what', 'are', 'you', 'doing?!'] } });
+    new ConditionSet({ $and: { $or: ['what', 'are', 'you', 'doing?!'] } }); // eslint-disable-line no-new
   });
 });
 
 test('normal construction gives a normal ConditionSet', t => {
   var attrs = {};
   var rsrc = {
-    [Symbol.for('permission.resource_type')]: 'user',
-    [Symbol.for('permission.resource_attr')]: k => {
+    [GET_RESOURCE_TYPE]: () => 'user',
+    [GET_RESOURCE_ATTRIBUTE]: k => {
       return attrs[k] || null;
     }
   };
 
-  var cs = ConditionSet.create([
+  var cs = new ConditionSet([
     ['@type', '~=', 'root'],
     {
       $or: [
@@ -57,13 +58,13 @@ test('normal construction gives a normal ConditionSet', t => {
 
 test('ConditionSet will skip over random falsy values', t => {
   var rsrc = {
-    [Symbol.for('permission.resource_type')]: 'user',
-    [Symbol.for('permission.resource_attr')]: k => {
+    [GET_RESOURCE_TYPE]: () => 'user',
+    [GET_RESOURCE_ATTRIBUTE]: k => {
       var attrs = { id: '5' };
       return attrs[k] || null;
     }
   };
-  var cs = ConditionSet.create([
+  var cs = new ConditionSet([
     [],
     ['@id', '=', '5'],
     false
@@ -73,8 +74,8 @@ test('ConditionSet will skip over random falsy values', t => {
 
 test('OR evaluations can short-circuit if needed', t => {
   var rsrc = {
-    [Symbol.for('permission.resource_type')]: 'user',
-    [Symbol.for('permission.resource_attr')]: k => {
+    [GET_RESOURCE_TYPE]: () => 'user',
+    [GET_RESOURCE_ATTRIBUTE]: k => {
       var attrs = {
         one: 'two',
         three: 'four'
@@ -86,7 +87,7 @@ test('OR evaluations can short-circuit if needed', t => {
     }
   };
 
-  var cs = ConditionSet.create({
+  var cs = new ConditionSet({
     $or: [
       ['@one', '=', 'two'],
       ['@three', '!=', 'four']
@@ -98,8 +99,8 @@ test('OR evaluations can short-circuit if needed', t => {
 
 test('AND evaluations can short-circuit if needed', t => {
   var rsrc = {
-    [Symbol.for('permission.resource_type')]: 'user',
-    [Symbol.for('permission.resource_attr')]: k => {
+    [GET_RESOURCE_TYPE]: () => 'user',
+    [GET_RESOURCE_ATTRIBUTE]: k => {
       var attrs = {
         one: 'two',
         three: 'four'
@@ -111,7 +112,7 @@ test('AND evaluations can short-circuit if needed', t => {
     }
   };
 
-  var cs = ConditionSet.create([
+  var cs = new ConditionSet([
     ['@one', '=', 'five'],
     ['@three', '=', 'four']
   ]);
@@ -121,11 +122,11 @@ test('AND evaluations can short-circuit if needed', t => {
 
 test('vacuous truth', t => {
   var rsrc = {
-    [Symbol.for('permission.resource_type')]: 'zone',
-    [Symbol.for('permission.resource_attr')]: k => null
+    [GET_RESOURCE_TYPE]: () => 'zone',
+    [GET_RESOURCE_ATTRIBUTE]: k => null
   };
 
-  t.true(ConditionSet.create([]).evaluate(rsrc));
+  t.true(new ConditionSet([]).evaluate(rsrc));
 });
 
 test('evaluating non-resource throws error', t => {
@@ -135,12 +136,12 @@ test('evaluating non-resource throws error', t => {
   };
 
   t.throws(() => {
-    ConditionSet.create(['@id', '=', '5']).evaluate(rsrc);
+    new ConditionSet(['@id', '=', '5']).evaluate(rsrc);
   });
 });
 
 test('ConditionSet toString', t => {
-  var cs = ConditionSet.create({
+  var cs = new ConditionSet({
     $and: [
       ['@id', '=', '5'],
       ['@type', '=', 'admin']
@@ -148,7 +149,7 @@ test('ConditionSet toString', t => {
   });
   t.is(JSON.stringify(cs), '[["@id","=","5"],["@type","=","admin"]]');
 
-  cs = ConditionSet.create({
+  cs = new ConditionSet({
     $or: [
       ['@type', '=', 'root'],
       ['@id', '=', '1']

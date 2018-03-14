@@ -7,6 +7,7 @@ use Cloudflare\Authr\Resource;
 use Cloudflare\Authr\Segment;
 use Cloudflare\Authr\ConditionSet;
 use Cloudflare\Test\Authr\TestSubject;
+use Psr\Log\NullLogger;
 
 class AuthrTest extends TestCase
 {
@@ -20,7 +21,7 @@ class AuthrTest extends TestCase
         foreach ($ops as $op) {
             list($action, $resourceDefinition, $result) = $op;
             $resource = Resource::adhoc($resourceDefinition['type'], $resourceDefinition['attributes']);
-            $this->assertTrue($result === Authr::can($subject, $action, $resource));
+            $this->assertTrue($result === (new Authr(new NullLogger()))->can($subject, $action, $resource));
         }
     }
 
