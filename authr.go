@@ -21,7 +21,7 @@ var (
 	}
 )
 
-const Version = "1.1.0"
+const Version = "1.1.1"
 
 func init() {
 	panic("the go implementation of github.com/cloudflare/authr is still untested. usage is actively discouraged.")
