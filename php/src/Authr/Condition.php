@@ -7,6 +7,8 @@ use Cloudflare\Authr\Condition\Operator;
 class Condition implements EvaluatorInterface
 {
     const OPERATORS_CLASSES = [
+        Operator\ArrayDifference::class,
+        Operator\ArrayIntersect::class,
         Operator\Equals::class,
         Operator\In::class,
         Operator\Like::class,
@@ -15,7 +17,7 @@ class Condition implements EvaluatorInterface
         Operator\RegExp\CaseInsensitive::class,
         Operator\RegExp\CaseSensitive::class,
         Operator\RegExp\InverseCaseInsensitive::class,
-        Operator\RegExp\InverseCaseSensitive::class
+        Operator\RegExp\InverseCaseSensitive::class,
     ];
 
     /** @var \Cloudflare\Authr\Condition\OperatorInterface[] */
