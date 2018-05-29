@@ -1,6 +1,10 @@
 RELEASE_TYPE ?= patch
 
+GO_BIN := $(shell which go)
+
 clean:
+	rm -fv *.pprof *.out
+	rm -rf ./vendor
 	make --directory ./js clean
 	make --directory ./php clean
 
@@ -10,9 +14,9 @@ setup:
 	# make --directory ./go setup (not implemented yet)
 
 test:
+	$(GO_BIN) test -race .
 	make --directory ./js test
 	make --directory ./php test
-	# make --directory ./go test (not implemented yet)
 
 release:
 	./contrib/semver bump $(RELEASE_TYPE) `cat VERSION` > VERSION

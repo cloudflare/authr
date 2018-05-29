@@ -5,3 +5,4 @@ npm-debug.log
 /js/build
 /php/vendor
 c.out
+*.pprof

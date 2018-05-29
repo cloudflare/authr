@@ -1,5 +1,12 @@
 matrix:
   include:
+    - language: go
+      go: '1.10'
+      script: &go_script
+        - go test -race .
+    - language: go
+      go: '1.9'
+      script: *go_script
     - language: php
       php: '5.6'
       script: &php_script
