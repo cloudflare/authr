@@ -157,7 +157,7 @@ final class Authr implements AuthrInterface
      */
     private function validateRuleConditionSet($conditions)
     {
-        if (static::isMap($conditions)) {
+        if (static::isMap($conditions, static::EMPTY_IS_NOT_ASSOCIATIVE)) {
             $haveCondKeys = array_keys($conditions);
             if (count($haveCondKeys) > 1) {
                 $otherKeys = implode("', '", array_values(array_filter($haveCondKeys, function ($key) { return $key !== '$or' && $key !== '$and'; })));
