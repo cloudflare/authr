@@ -86,7 +86,7 @@ instead, the only way to specify that a specific actor is able to perform an act
 
 ```go
 type Subject interface {
-    GetRules() ([]Rule, error)
+    GetRules() ([]*Rule, error)
 }
 ```
 

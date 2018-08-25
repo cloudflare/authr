@@ -1,8 +1,8 @@
 'use strict';
 
 import test from 'ava';
-import ConditionSet from '../../src/authr/ConditionSet';
-import { GET_RESOURCE_TYPE, GET_RESOURCE_ATTRIBUTE } from '../../src/authr';
+import ConditionSet from '../build/conditionSet';
+import { GET_RESOURCE_TYPE, GET_RESOURCE_ATTRIBUTE } from '../build';
 
 test('unknown logical conjunctions throws error', t => {
   t.throws(() => {

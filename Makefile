@@ -1,22 +1,25 @@
 RELEASE_TYPE ?= patch
 
+GO_BIN := $(shell which go)
+
 clean:
-	make --directory ./js clean
+	rm -rf ./vendor
+	make --directory ./ts clean
 	make --directory ./php clean
+	find . '(' -name \*.out -o -name \*.pprof ')' -exec rm -v {} +
 
 setup:
-	make --directory ./js setup
+	make --directory ./ts setup
 	make --directory ./php setup
-	# make --directory ./go setup (not implemented yet)
 
 test:
-	make --directory ./js test
+	$(GO_BIN) test -race .
+	make --directory ./ts test
 	make --directory ./php test
-	# make --directory ./go test (not implemented yet)
 
 release:
 	./contrib/semver bump $(RELEASE_TYPE) `cat VERSION` > VERSION
-	make --directory ./js release
+	make --directory ./ts release
 	git add VERSION js/package.json
 	git commit -m "Release v`cat VERSION`"
 	git tag `cat VERSION`

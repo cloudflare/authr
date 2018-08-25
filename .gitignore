@@ -1,7 +1,10 @@
 .DS_Store
 /go/vendor
+
 npm-debug.log
-/js/node_modules
-/js/build
+/ts/node_modules
+/ts/build
+
 /php/vendor
 c.out
+*.pprof

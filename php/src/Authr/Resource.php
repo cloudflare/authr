@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1);
 
 namespace Cloudflare\Authr;
 
@@ -28,7 +28,7 @@ class Resource implements ResourceInterface
      * @return \Cloudflare\Authr\Resource
      * @suppress PhanUnreferencedMethod
      */
-    public static function adhoc($type, array $attributes)
+    public static function adhoc($type, array $attributes): ResourceInterface
     {
         $rsrc = new static();
 
@@ -46,12 +46,12 @@ class Resource implements ResourceInterface
         return $rsrc;
     }
 
-    public function getResourceType()
+    public function getResourceType(): string
     {
         return $this->type;
     }
 
-    public function getResourceAttribute($key)
+    public function getResourceAttribute(string $key)
     {
         if (!array_key_exists($key, $this->attributes)) {
             return null;

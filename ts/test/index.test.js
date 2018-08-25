@@ -7,9 +7,9 @@ import {
   GET_RULES,
   GET_RESOURCE_TYPE,
   GET_RESOURCE_ATTRIBUTE
-} from '../src/authr';
-import SlugSet from '../src/authr/SlugSet';
-import ConditionSet from '../src/authr/ConditionSet';
+} from '../build';
+import SlugSet from '../build/slugSet';
+import ConditionSet from '../build/conditionSet';
 
 test('normal permission construction', t => {
   var p = Rule.allow({
@@ -30,7 +30,7 @@ test('normal permission construction', t => {
 
   t.true(p.conditions() instanceof ConditionSet);
 
-  t.is(p.toString(), '{"access":"allow","where":{"action":"enabled_service_mode","rsrc_type":"zone","rsrc_match":[["@id","=","123"]]}}');
+  t.is(p.toString(), '{"access":"allow","where":{"rsrc_type":"zone","rsrc_match":[["@id","=","123"]],"action":"enabled_service_mode"}}');
 });
 
 test('undefined resource type throws error', t => {

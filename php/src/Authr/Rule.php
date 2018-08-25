@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1);
 
 namespace Cloudflare\Authr;
 
@@ -83,10 +83,10 @@ final class Rule implements \JsonSerializable
      * 
      * @param array|string $where
      * @param mixed $meta Set any metadata on the rule
-     * @return static
+     * @return self
      * @suppress PhanUnreferencedMethod
      */
-    public static function allow($where, $meta = null)
+    public static function allow($where, $meta = null): self
     {
         return new static(static::ALLOW, $where, $meta);
     }
@@ -99,7 +99,7 @@ final class Rule implements \JsonSerializable
      * @return static
      * @suppress PhanUnreferencedMethod
      */
-    public static function deny($where, $meta = null)
+    public static function deny($where, $meta = null): self
     {
         return new static(static::DENY, $where, $meta);
     }
@@ -113,7 +113,7 @@ final class Rule implements \JsonSerializable
      * @throws \Cloudflare\Authr\Exception\RuntimeException If JSON decoding failed
      * @suppress PhanUnreferencedMethod
      */
-    public static function create($spec)
+    public static function create($spec): self
     {
         if (is_string($spec)) {
             $spec = json_decode($spec, true);
@@ -218,7 +218,7 @@ final class Rule implements \JsonSerializable
      * 
      * @return string
      */
-    public function access()
+    public function access(): string
     {
         return $this->access;
     }
@@ -229,7 +229,7 @@ final class Rule implements \JsonSerializable
      * @return \Cloudflare\Authr\SlugSet
      * @throws \Cloudflare\Authr\Exception\RuntimeException If the segment is undefined
      */
-    public function resourceTypes()
+    public function resourceTypes(): SlugSet
     {
         if (is_null($this->where[static::RESOURCE_TYPE])) {
             throw new Exception\RuntimeException('Cannot retrieve undefined resource type segment');
@@ -244,7 +244,7 @@ final class Rule implements \JsonSerializable
      * @return \Cloudflare\Authr\ConditionSet
      * @throws \Cloudflare\Authr\Exception\RuntimeException If the segment is undefined
      */
-    public function conditions()
+    public function conditions(): ConditionSet
     {
         if (is_null($this->where[static::RESOURCE_MATCH])) {
             throw new Exception\RuntimeException('Cannot retrieve undefined resource match segment');
@@ -259,7 +259,7 @@ final class Rule implements \JsonSerializable
      * @return \Cloudflare\Authr\SlugSet
      * @throws \Cloudflare\Authr\Exception\RuntimeException If the segment is undefined
      */
-    public function actions()
+    public function actions(): SlugSet
     {
         if (is_null($this->where[static::ACTION])) {
             throw new Exception\RuntimeException('Cannot retrieve undefined actions segment');

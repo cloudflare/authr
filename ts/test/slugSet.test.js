@@ -1,7 +1,7 @@
 'use strict';
 
 import test from 'ava';
-import SlugSet from '../../src/authr/SlugSet';
+import SlugSet from '../build/slugSet';
 
 test('malformed slug set throws error', t => {
   t.throws(() => {
