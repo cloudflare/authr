@@ -1,5 +1,11 @@
-setup:
-	composer install --ignore-platform-reqs --no-suggest --working-dir=../
+# dependencies
+# - composer
+
+setup: vendor/.ok
+
+vendor/.ok:
+	composer install --working-dir=../
+	touch $@
 
 clean:
 	rm -rf vendor

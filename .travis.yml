@@ -1,21 +1,32 @@
 matrix:
   include:
+    - language: go
+      go: '1.11'
+      script:
+        - go test -race .
+        # go 1.11 runs "vet" by default with go test
+    - language: go
+      go: '1.10'
+      script: &go_script
+        - go test -race .
+        - go vet
+    - language: go
+      go: '1.9'
+      script: *go_script
     - language: php
-      php: '5.6'
+      php: '7.1'
       script: &php_script
         - make -C php/ setup
         - phpunit -c php/phpunit.xml
-    - language: php
-      php: '7.0'
-      script: *php_script
-    - language: php
-      php: '7.1'
-      script: *php_script
     - language: php
       php: '7.2'
       script: *php_script
     - language: node_js
       node_js:
         - '9'
-      script:
-        - make -C js/ setup test
+      script: &js_script
+        - make -C ts/ test
+    - language: node_js
+      node_js:
+        - '10'
+      script: *js_script

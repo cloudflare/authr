@@ -3,6 +3,7 @@
 namespace Cloudflare\Test\Authr;
 
 use Cloudflare\Authr\SubjectInterface;
+use Cloudflare\Authr\RuleList;
 
 class TestSubject implements SubjectInterface
 {
@@ -12,13 +13,15 @@ class TestSubject implements SubjectInterface
     /**
      * @param \Cloudflare\Authr\Rule[] $rules
      */
-    public function setRules(array $rules)
+    public function setRules(array $rules): void
     {
         $this->rules = $rules;
     }
 
-    public function getRules()
+    public function getRules(): RuleList
     {
-        return $this->rules;
+        $rules = new RuleList();
+        $rules->push(...$this->rules);
+        return $rules;
     }
 }

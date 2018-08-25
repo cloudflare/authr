@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1);
 
 namespace Cloudflare\Authr;
 
@@ -16,10 +16,10 @@ final class ConditionSet implements EvaluatorInterface
     const IMPLIED_CONJUNCTION = self::LOGICAL_AND;
 
     /** @var \Cloudflare\Authr\EvaluatorInterface[] */
-    protected $evaluators = [];
+    private $evaluators = [];
 
     /** @var string */
-    protected $conjunction = self::IMPLIED_CONJUNCTION;
+    private $conjunction = self::IMPLIED_CONJUNCTION;
 
     /**
      * @param array $spec
@@ -49,7 +49,10 @@ final class ConditionSet implements EvaluatorInterface
         }
     }
 
-    public function evaluate(ResourceInterface $resource)
+    /**
+     * {@inheritDoc}
+     */
+    public function evaluate(ResourceInterface $resource): bool
     {
         $result = true; // Vacuous truth: https://en.wikipedia.org/wiki/Vacuous_truth
         foreach ($this->evaluators as $evaluator) {

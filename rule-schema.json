@@ -1,0 +1,95 @@
+{
+  "$schema": "http://json-schema.org/draft-06/schema#",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["access", "where"],
+  "properties": {
+    "access": {
+      "type": "string",
+      "enum": ["allow", "deny"]
+    },
+    "where": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["rsrc_type", "rsrc_match", "action"],
+      "properties": {
+        "rsrc_type": { "$ref": "#/definitions/slugSet" },
+        "rsrc_match": { "$ref": "#/definitions/conditionSet" },
+        "action": { "$ref": "#/definitions/slugSet" }
+      }
+    },
+    "$meta": {}
+  },
+  "definitions": {
+    "conditionSet": {
+      "definitions": {
+        "inner": {
+          "type": "array",
+          "items": {
+            "oneOf": [
+              { "$ref": "#/definitions/conditionSet/definitions/condition" },
+              { "$ref": "#/definitions/conditionSet" }
+            ]
+          }
+        },
+        "condition": {
+          "type": "array",
+          "maxItems": 3,
+          "minItems": 3,
+          "items": [
+            {},
+            {
+              "type": "string",
+              "enum": ["=", "!=", "~=", "~", "~*", "!~", "!~*", "$in", "$nin", "&", "-"]
+            },
+            {}
+          ]
+        }
+      },
+      "oneOf": [
+        { "$ref": "#/definitions/conditionSet/definitions/inner" },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["$and"],
+          "properties": {
+            "$and": { "$ref": "#/definitions/conditionSet/definitions/inner" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["$or"],
+          "properties": {
+            "$or": { "$ref": "#/definitions/conditionSet/definitions/inner" }
+          }
+        }
+      ]
+    },
+    "slugSet": {
+      "definitions": {
+        "inner": {
+          "oneOf": [
+            { "type": "string", "minLength": 1 },
+            {
+              "type": "array",
+              "minItems": 1,
+              "items": { "type": "string", "minLength": 1 }
+            }
+          ]
+        }
+      },
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["$not"],
+          "properties": {
+            "$not": { "$ref": "#/definitions/slugSet/definitions/inner" }
+          }
+        },
+        { "$ref": "#/definitions/slugSet/definitions/inner" }
+      ]
+    }
+  }
+}

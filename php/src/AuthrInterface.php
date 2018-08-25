@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1);
 
 namespace Cloudflare;
 
@@ -14,9 +14,9 @@ interface AuthrInterface
      * @param \Cloudflare\Authr\SubjectInterface $subject The thing that is performing the action
      * @param string $action
      * @param \Cloudflare\Authr\ResourceInterface $resource
-     * @return boolean
+     * @return bool
      */
-    public function can(SubjectInterface $subject, $action, ResourceInterface $resource);
+    public function can(SubjectInterface $subject, string $action, ResourceInterface $resource): bool;
 
     /**
      * Validate a raw definition of a rule.
@@ -24,5 +24,5 @@ interface AuthrInterface
      * @return void
      * @throws \Cloudflare\Authr\Exception\ValidationException
      */
-    public function validateRule($definition);
+    public function validateRule($definition): void;
 }

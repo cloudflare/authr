@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1);
 
 namespace Cloudflare;
 
@@ -32,19 +32,13 @@ final class Authr implements AuthrInterface
     /**
      * {@inheritDoc}
      */
-    public function can(SubjectInterface $subject, $action, ResourceInterface $resource)
+    public function can(SubjectInterface $subject, string $action, ResourceInterface $resource): bool
     {
         $rules = $subject->getRules();
-        if (!is_array($rules)) {
-            throw new Exception\RuntimeException('Unexpected type returned from subject rule retrieval');
-        }
         $rt = $resource->getResourceType();
         $this->logger->info('checking permissions', ['action' => $action, 'rsrc_type' => $rt]);
         $i = 0;
         foreach ($rules as $rule) {
-            if (!$rule instanceof Rule) {
-                throw new Exception\RuntimeException('Unexpected type found in subject permission list');
-            }
             if (!$rule->resourceTypes()->contains($rt)) {
                 $this->logger->debug('continuing permission check, rsrc_type mismatch', ['rule_no' => ++$i]);
                 continue;
@@ -78,7 +72,7 @@ final class Authr implements AuthrInterface
     /**
      * {@inheritDoc}
      */
-    public function validateRule($definition)
+    public function validateRule($definition): void
     {
         if (!static::isMap($definition)) {
             throw new Exception\ValidationException('Rule definition must be a map');
@@ -120,7 +114,7 @@ final class Authr implements AuthrInterface
      * @param string $ssKey
      * @return void
      */
-    private function validateRuleSlugSet($where, $ssKey)
+    private function validateRuleSlugSet($where, string $ssKey): void
     {
         $ss = $where[$ssKey];
         if (static::isMap($ss)) {
@@ -155,7 +149,7 @@ final class Authr implements AuthrInterface
      * @param mixed[] $conditions
      * @return void
      */
-    private function validateRuleConditionSet($conditions)
+    private function validateRuleConditionSet($conditions): void
     {
         if (static::isMap($conditions, static::EMPTY_IS_NOT_ASSOCIATIVE)) {
             $haveCondKeys = array_keys($conditions);

@@ -7,24 +7,28 @@ import (
 	"strings"
 )
 
+var rcache regexpCache = &noopRegexpCache{}
+
 var (
 	operators = map[string]operator{
-		"=":    equals,
-		"!=":   notequals,
-		"$in":  in,
-		"$nin": nin,
-		"~=":   like,
-		"~":    regexpOperatorFactory(regopts{ci: false, inv: false}),
-		"~*":   regexpOperatorFactory(regopts{ci: true, inv: false}),
-		"!~":   regexpOperatorFactory(regopts{ci: false, inv: true}),
-		"!~*":  regexpOperatorFactory(regopts{ci: true, inv: true}),
+		"=":    operatorFunc(looseEquality),
+		"!=":   negate(operatorFunc(looseEquality)),
+		"$in":  in("$in", false),
+		"$nin": in("$nin", true),
+		"~=":   operatorFunc(like),
+		"&":    intersect("&", false),
+		"-":    intersect("-", true),
+		"~":    &regexpOperator{ci: false, inv: false},
+		"~*":   &regexpOperator{ci: true, inv: false},
+		"!~":   &regexpOperator{ci: false, inv: true},
+		"!~*":  &regexpOperator{ci: true, inv: true},
 	}
 )
 
 const Version = "1.1.2"
 
 func init() {
-	panic("the go implementation of github.com/cloudflare/authr is still untested. usage is actively discouraged.")
+	rcache = newRegexpListCache(5)
 }
 
 // Error is used for any error that occurs during authr's evaluation. They are
@@ -46,14 +50,29 @@ const (
 
 	// Deny when set as the "access" on a rule will return false when the rule
 	// is matched
-	Deny = "Deny"
+	Deny Access = "deny"
 )
 
+// LogicalConjunction is the representation of the logic that joins condition
+// sets
 type LogicalConjunction string
 
+func (l LogicalConjunction) String() string {
+	return string(l)
+}
+
 const (
+	// LogicalAnd is used as a single key in a map to denote a set of conditions
+	// that should be evaluated and all values should be true, to return true
 	LogicalAnd LogicalConjunction = "$and"
-	LogicalOr                     = "$or"
+
+	// LogicalOr is used as a single key in a map to denote a set of conditions
+	// that should be evaluated and any values should be true to return true
+	LogicalOr LogicalConjunction = "$or"
+
+	// ImpliedConjunction is the default conjunction on condition sets that do
+	// not have an explicit conjunction
+	ImpliedConjunction = LogicalAnd
 )
 
 // Subject is an abstract representation of an entity capable of performing
@@ -109,9 +128,9 @@ func (r Rule) Meta(meta interface{}) *Rule {
 	return &r
 }
 
-func (r Rule) Where(resourceType, action slugSet, conditions conditionSet) *Rule {
-	r.where.resourceType = resourceType
+func (r Rule) Where(action, resourceType slugSet, conditions conditionSet) *Rule {
 	r.where.action = action
+	r.where.resourceType = resourceType
 	r.where.resourceMatch = conditions
 	return &r
 }
@@ -125,6 +144,7 @@ type slugSetMode int
 const (
 	whitelist slugSetMode = iota
 	blacklist
+	wildcard
 )
 
 type slugSet struct {
@@ -211,20 +231,20 @@ func (c conditionSet) evaluate(r Resource) (bool, error) {
 		}
 		if c.logicalConjunction == LogicalOr {
 			if subresult {
-				return true // short-circuit
+				return true, nil // short-circuit
 			}
 			result = false
 		} else if c.logicalConjunction == LogicalAnd {
 			if !subresult {
-				return false // short-cicuit
+				return false, nil // short-cicuit
 			}
 			result = true
 		}
 	}
-	return false, nil
+	return result, nil
 }
 
-func Can(s Subject, act string, r Resource) (bool, error) {
+func Can(s Subject, action string, r Resource) (bool, error) {
 	var (
 		err          error
 		rules        []*Rule
@@ -247,7 +267,7 @@ func Can(s Subject, act string, r Resource) (bool, error) {
 		if !ok {
 			continue
 		}
-		if ok, err = rule.where.action.contains(act); err != nil {
+		if ok, err = rule.where.action.contains(action); err != nil {
 			return false, err
 		}
 		if !ok {
@@ -330,7 +350,7 @@ func (c condition) evaluate(r Resource) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	return _operator(left, right)
+	return _operator.compute(left, right)
 }
 
 func determineValue(r Resource, a interface{}) (interface{}, error) {
@@ -345,47 +365,72 @@ func determineValue(r Resource, a interface{}) (interface{}, error) {
 	return a, nil
 }
 
-type operator func(left, right interface{}) (bool, error)
-
-func equals(left, right interface{}) (bool, error) {
-	return looseEquality(left, right)
+type operator interface {
+	compute(left, right interface{}) (bool, error)
 }
 
-func notequals(left, right interface{}) (bool, error) {
-	eq, err := looseEquality(left, right)
-	if err != nil {
-		return false, err
-	}
-	return !eq, nil
+type operatorFunc func(left, right interface{}) (bool, error)
+
+func (o operatorFunc) compute(left, right interface{}) (bool, error) {
+	return o(left, right)
 }
 
-func in(left, right interface{}) (bool, error) {
-	rv := reflect.ValueOf(right)
-	k := rv.Kind()
-	if k != reflect.Array && k != reflect.Slice {
-		return false, Error(fmt.Sprintf("$in operator expects the right operand to be an array or slice, received %T", right))
-	}
-
-	for i := 0; i < rv.Len(); i++ {
-		eq, err := looseEquality(left, rv.Index(i).Interface())
+func negate(op operator) operator {
+	return operatorFunc(func(left, right interface{}) (bool, error) {
+		res, err := op.compute(left, right)
 		if err != nil {
 			return false, err
 		}
-		if eq {
-			return true, nil
-		}
-	}
-
-	return false, nil
+		return !res, nil
+	})
 }
 
-// \m/
-func nin(left, right interface{}) (bool, error) {
-	isin, err := in(left, right)
-	if err != nil {
-		return false, err
-	}
-	return !isin, nil
+func intersect(opsym string, inv bool) operator {
+	return operatorFunc(func(left, right interface{}) (bool, error) {
+		lv, rv := reflect.ValueOf(left), reflect.ValueOf(right)
+		if !isArrayIsh(lv) {
+			return false, Error(fmt.Sprintf("%s operator expects both operands to be an array or slice, received %T for left operand", opsym, left))
+		}
+		if !isArrayIsh(rv) {
+			return false, Error(fmt.Sprintf("%s operator expects both operands to be an array or slice, received %T for right operand", opsym, right))
+		}
+		for i := 0; i < lv.Len(); i++ {
+			for j := 0; j < rv.Len(); j++ {
+				ok, err := looseEquality(lv.Index(i).Interface(), rv.Index(j).Interface())
+				if err != nil {
+					return false, err
+				}
+				if ok {
+					return !inv, nil
+				}
+			}
+		}
+		return inv, nil
+	})
+}
+
+func isArrayIsh(v reflect.Value) bool {
+	k := v.Kind()
+	return k == reflect.Array || k == reflect.Slice
+}
+
+func in(opsym string, inv bool) operator {
+	return operatorFunc(func(left, right interface{}) (bool, error) {
+		rv := reflect.ValueOf(right)
+		if !isArrayIsh(rv) {
+			return false, Error(fmt.Sprintf("%s operator expects the right operand to be an array or slice, received %T", opsym, right))
+		}
+		for i := 0; i < rv.Len(); i++ {
+			ok, err := looseEquality(left, rv.Index(i).Interface())
+			if err != nil {
+				return false, err
+			}
+			if ok {
+				return !inv, nil
+			}
+		}
+		return inv, nil
+	})
 }
 
 func like(left, right interface{}) (bool, error) {
@@ -405,59 +450,76 @@ func like(left, right interface{}) (bool, error) {
 		pright = ""
 		sr = sr[0 : len(sr)-2]
 	}
-	return regexp.MustCompile("(?i)" + pleft + regexp.QuoteMeta(sr) + pright).MatchString(fmt.Sprintf("%v", left)), nil
+	patstring := "(?i)" + pleft + regexp.QuoteMeta(sr) + pright
+	r, ok := rcache.find(patstring)
+	if !ok {
+		r = regexp.MustCompile(patstring)
+		rcache.add(patstring, r)
+	}
+	switch lv := left.(type) {
+	case string:
+		return r.MatchString(lv), nil
+	default:
+		return r.MatchString(fmt.Sprintf("%v", left)), nil
+	}
 }
 
-type regopts struct {
+type regexpOperator struct {
 	ci, inv bool
 }
 
-func operatorName(opts regopts) string {
+func (r *regexpOperator) compute(left, right interface{}) (bool, error) {
+	var pattern *regexp.Regexp
+	if patstring, ok := right.(string); ok && len(patstring) > 0 {
+		var (
+			err error
+			ok  bool
+		)
+		if r.ci {
+			patstring = "(?i)" + patstring
+		}
+		pattern, ok = rcache.find(patstring)
+		if !ok {
+			pattern, err = regexp.Compile(patstring)
+			if err != nil {
+				return false, err
+			}
+			rcache.add(patstring, pattern)
+		}
+	} else {
+		return false, Error(fmt.Sprintf("right operand of the %s must be a non-empty string", r.operatorName()))
+	}
+
+	var ok bool
+	// so, we can potentially avoid a LOT of allocations if we simply see
+	// our left value is a string before jamming it into fmt.Sprintf and
+	// needing to allocate
+	switch l := left.(type) {
+	case string:
+		ok = pattern.MatchString(l)
+	default:
+		ok = pattern.MatchString(fmt.Sprintf("%+v", l))
+	}
+	if r.inv {
+		return !ok, nil
+	} else {
+		return ok, nil
+	}
+}
+
+func (r *regexpOperator) operatorName() string {
 	op := "~"
 	name := []string{"regexp", "operator"}
-	if opts.ci {
+	if r.ci {
 		op = op + "*"
 		name = append([]string{"case-insensitive"}, name...)
 	}
-	if opts.inv {
+	if r.inv {
 		op = "!" + op
 		name = append([]string{"inverse"}, name...)
 	}
 
 	return fmt.Sprintf("%s (%s)", strings.Join(name, " "), op)
-}
-
-func regexpOperatorFactory(opts regopts) operator {
-	return func(left, right interface{}) (bool, error) {
-		var pattern *regexp.Regexp
-		if patstring, ok := right.(string); ok && len(patstring) > 0 {
-			var err error
-			if opts.ci {
-				patstring = "(?i)" + patstring
-			}
-			pattern, err = regexp.Compile(patstring)
-			if err != nil {
-				return false, err
-			}
-		} else {
-			return false, Error(fmt.Sprintf("right operand of the %s must be a non-empty string", operatorName(opts)))
-		}
-
-		ok := pattern.MatchString(fmt.Sprintf("%v", left))
-		if opts.inv {
-			return !ok, nil
-		} else {
-			return ok, nil
-		}
-	}
-}
-
-// Comparable is an abstract representation of a type which is capable of being
-// compared for equality against arbitrary values. This is useful if you will
-// be returning your own types from Resource.GetResourceAttribute and you want
-// them to still be comparable.
-type Comparable interface {
-	EqualInterface(interface{}) (bool, error)
 }
 
 func looseEquality(left, right interface{}) (bool, error) {
@@ -472,8 +534,6 @@ func looseEquality(left, right interface{}) (bool, error) {
 			return boolstringequal(r, l), nil
 		case nil:
 			return l == "", nil
-		case Comparable:
-			return r.EqualInterface(left)
 		default:
 			return false, Error(fmt.Sprintf("unsupported type in loose equality check: '%T'", r))
 		}
@@ -492,8 +552,6 @@ func looseEquality(left, right interface{}) (bool, error) {
 			}
 		case nil:
 			return numbertofloat64(l) == float64(0), nil
-		case Comparable:
-			return r.EqualInterface(left)
 		default:
 			return false, Error(fmt.Sprintf("unsupported type in loose equality check: '%T'", r))
 		}
@@ -528,8 +586,6 @@ func looseEquality(left, right interface{}) (bool, error) {
 		default:
 			return false, Error(fmt.Sprintf("unsupported type in loose equality check: '%T'", r))
 		}
-	case Comparable:
-		return l.EqualInterface(right)
 	default:
 		return false, Error(fmt.Sprintf("unsupported type in loose equality check: '%T'", l))
 	}
@@ -539,7 +595,7 @@ func boolstringequal(a bool, b string) bool {
 	if !a {
 		return b == "" || b == "0"
 	} else {
-		return len(b) > 0 && b != ""
+		return len(b) > 0 && b != "0"
 	}
 }
 
@@ -571,36 +627,4 @@ func numbertofloat64(n interface{}) float64 {
 		return _n
 	}
 	panic(fmt.Sprintf("numbertofloat64 received non-numeric type: %T", n))
-}
-
-func test() {
-	new(Rule).
-		Access(Allow).
-		Where(
-			ResourceType("zone"),
-			Action("delete"),
-			ResourceMatch(
-				Cond("@id", "=", "123"),
-				Or(
-					Cond("@status", "=", "D"),
-					Cond("@name", "$in", []string{"foo.com", "bar.net"}),
-				),
-			),
-		).
-		Meta(map[string]interface{}{
-			"rule_id": 4431,
-		})
-	// x := new(Rule).
-	// 	Access(Allow).
-	// 	Where(
-	// 		ResourceType("post").Not(),
-	// 		Action("update"),
-	// 		ResourceMatch(
-	// 			Cond("@id", "=", "123"),
-	// 			Or(
-	// 				Cond("@name", "$in", []string{"foo", "bar"}),
-	// 				Cond("@status", "$nin", []string{"A", "D"}),
-	// 			),
-	// 		),
-	// 	)
 }

@@ -1,8 +1,8 @@
 'use strict';
 
 import test from 'ava';
-import Condition from '../../src/authr/Condition';
-import { GET_RESOURCE_TYPE, GET_RESOURCE_ATTRIBUTE } from '../../src/authr';
+import Condition from '../build/condition';
+import { GET_RESOURCE_TYPE, GET_RESOURCE_ATTRIBUTE } from '../build';
 
 test('undefined operator throws error', t => {
   t.throws(() => {

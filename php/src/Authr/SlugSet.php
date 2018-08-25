@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1);
 
 namespace Cloudflare\Authr;
 
@@ -42,9 +42,9 @@ final class SlugSet implements JsonSerializable
 
     /**
      * @param string $needle
-     * @return boolean
+     * @return bool
      */
-    public function contains($needle)
+    public function contains(string $needle): bool
     {
         if ($this->mode === static::MODE_WILDCARD) {
             return true;

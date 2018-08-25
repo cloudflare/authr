@@ -1,10 +1,10 @@
-<?php
+<?php declare(strict_types=1);
 
 namespace Cloudflare\Authr;
 
 use Cloudflare\Authr\Condition\Operator;
 
-class Condition implements EvaluatorInterface
+final class Condition implements EvaluatorInterface
 {
     const OPERATORS_CLASSES = [
         Operator\ArrayDifference::class,
@@ -21,23 +21,23 @@ class Condition implements EvaluatorInterface
     ];
 
     /** @var \Cloudflare\Authr\Condition\OperatorInterface[] */
-    protected static $operators;
+    private static $operators;
 
     /** @var \Cloudflare\Authr\Condition\OperatorInterface */
-    protected $operator;
+    private $operator;
 
     /** @var mixed */
-    protected $left;
+    private $left;
 
     /** @var mixed */
-    protected $right;
+    private $right;
 
     /**
      * @param mixed $left
      * @param string $op
      * @param mixed $right
      */
-    public function __construct($left, $op, $right)
+    public function __construct($left, string $op, $right)
     {
         static::initDefaultOperators();
         if (!array_key_exists($op, static::$operators)) {
@@ -54,7 +54,7 @@ class Condition implements EvaluatorInterface
      * @param \Cloudflare\Authr\ResourceInterface $resource
      * @return boolean
      */
-    public function evaluate(ResourceInterface $resource)
+    public function evaluate(ResourceInterface $resource): bool
     {
         return call_user_func(
             $this->operator,
