@@ -1,3 +1,4 @@
+import AuthrError from './authrError';
 import { isPlainObject, $authr } from './util';
 
 enum Mode {
@@ -10,7 +11,7 @@ const NOT = '$not';
 
 interface ISlugSetInternal {
     mode: Mode,
-    items: Array<string>
+    items: string[]
 }
 
 interface IBlacklistSpec {
@@ -44,7 +45,7 @@ export default class SlugSet {
                 spec = [spec];
             }
             if (!Array.isArray(spec)) {
-                throw new Error('SlugSet constructor expects a string, array or object for argument 1'); // TODO: proper auth error
+                throw new AuthrError('SlugSet constructor expects a string, array or object for argument 1');
             }
             this[$authr].items = spec;
         }

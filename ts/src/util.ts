@@ -14,10 +14,6 @@ export interface IEvaluator {
     evaluate(resource: IResource): boolean;
 }
 
-export interface IOperator {
-    compute(left: any, right: any): boolean;
-}
-
 export interface IJSONSerializable {
     toJSON(): any;
 }

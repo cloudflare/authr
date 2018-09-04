@@ -59,11 +59,7 @@ export default class Rule implements IJSONSerializable {
     constructor(access: any, spec: any, meta: any = null) {
         this[$authr] = {
             access: coerceToAccess(access),
-            where: {
-                [RSRC_TYPE]: null,
-                [RSRC_MATCH]: null,
-                [ACTION]: null
-            },
+            where: {},
             meta: null
         };
         if (typeof spec === 'string' && spec === 'all') {
@@ -98,24 +94,27 @@ export default class Rule implements IJSONSerializable {
     }
 
     resourceTypes(): SlugSet {
-        if (!this[$authr].where[RSRC_TYPE]) {
+        const rt = this[$authr].where[RSRC_TYPE];
+        if (!rt) {
             throw new AuthrError('missing "where.rsrc_type" segment on rule');
         }
-        return this[$authr].where[RSRC_TYPE];
+        return rt;
     }
 
     conditions(): ConditionSet {
-        if (!this[$authr].where[RSRC_MATCH]) {
+        const match = this[$authr].where[RSRC_MATCH];
+        if (!match) {
             throw new AuthrError('missing "where.rsrc_match" segment on rule');
         }
-        return this[$authr].where[RSRC_MATCH];
+        return match;
     }
 
     actions(): SlugSet {
-        if (!this[$authr].where[ACTION]) {
+        const act = this[$authr].where[ACTION];
+        if (!act) {
             throw new AuthrError('missing "where.action" segment on rule');
         }
-        return this[$authr].where[ACTION];
+        return act;
     }
 
     toJSON(): any {
