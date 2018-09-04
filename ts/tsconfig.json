@@ -4,6 +4,7 @@
         "outDir": "build",
         "module": "commonjs",
         "noImplicitAny": true,
+        "strict": true,
         "lib": [
             "es6",
             "es2016.array.include",

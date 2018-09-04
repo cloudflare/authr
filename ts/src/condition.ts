@@ -2,9 +2,7 @@ import {
     $authr,
     IJSONSerializable,
     IEvaluator,
-    IOperator,
     isString,
-    values,
     isArray
 } from './util';
 import { findIndex, intersectionWith } from 'lodash';
@@ -27,10 +25,6 @@ export enum OperatorSign {
     NOT_IN = '$nin',
     ARRAY_INTERSECT = '&',
     ARRAY_DIFFERENCE = '-'
-}
-
-function isOperaterSign(v?: any): v is OperatorSign {
-    return isString(v) && values(OperatorSign).includes(v);
 }
 
 const operators: Map<OperatorSign, IOperatorFunc> = new Map([
@@ -79,7 +73,7 @@ const operators: Map<OperatorSign, IOperatorFunc> = new Map([
             if (!isArray(right)) {
                 return false;
             }
-            return findIndex(right, v => v == left) >= 0;
+            return findIndex(right, (v: any) => v == left) >= 0;
         }
     ],
     [
@@ -134,14 +128,15 @@ export default class Condition implements IJSONSerializable, IEvaluator {
 
     private [$authr]: IConditionInternal;
 
-    constructor(left: any, operator: string, right: any) {
-        if (!isOperaterSign(operator)) {
-            throw new AuthrError(`Unknown condition operator: '${operator}'`);
+    constructor(left: any, opsign: string, right: any) {
+        const op = operators.get(opsign as OperatorSign);
+        if (!op) {
+            throw new AuthrError(`Unknown condition operator: '${opsign}'`);
         }
         this[$authr] = {
             left, right,
-            sign: operator,
-            operator: operators.get(operator),
+            sign: opsign as OperatorSign,
+            operator: op
         };
     }
 

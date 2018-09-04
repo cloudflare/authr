@@ -2,7 +2,7 @@ import AuthrError from './authrError';
 import Condition from './condition';
 import IResource from './resource';
 import { $authr, IJSONSerializable, IEvaluator, isArray, isString, empty } from './util';
-import { isBoolean, isPlainObject } from 'lodash';
+import { isPlainObject } from 'lodash';
 
 enum Conjunction {
     AND = '$and',
