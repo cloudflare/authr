@@ -12,7 +12,7 @@ the framework itself has similar vocabulary to an [ABAC](https://en.wikipedia.or
 
 #### subject
 
-a *subject* in this framework represents an entity that is capable of permforming actions; an *actor* if you will. in most cases this will represent a "user" or an "admin".
+a *subject* in this framework represents an entity that is capable of performing actions; an *actor* if you will. in most cases this will represent a "user" or an "admin".
 
 #### resource
 
@@ -45,9 +45,9 @@ notice the lack of anything that specifies conditions on *who* is actually perfo
 
 ### agnosticism through interfaces
 
-across implementations, *authr* requires that objects implement certain functionality so that its engine can propertly analyze resources against a list of rules that *belong* to a subject.
+across implementations, *authr* requires that objects implement certain functionality so that its engine can properly analyze resources against a list of rules that *belong* to a subject.
 
-once the essential objects in an applicaiton have implemented these interfaces, the essential question can finally be asked: **can this subject perform this action on this resource?**
+once the essential objects in an application have implemented these interfaces, the essential question can finally be asked: **can this subject perform this action on this resource?**
 
 ```php
 <?php
@@ -110,7 +110,7 @@ because the basic unit of permission in authr is a rule defined in JSON, it is p
 
 an example of this internally at Cloudflare is in a administrative service. by having this permissions defined in JSON, we can simply transfer all the rules down to the front-end (in JavaScript) and allow the front-end to hide/show certain functionality *based* on the permission of whoever is logged in.
 
-when you can have the front-end and the back-end of a service seamlessy agreeing with each other on access-control by only updating a single rule, once, it can lead to much easier maintainability.
+when you can have the front-end and the back-end of a service seamlessly agreeing with each other on access-control by only updating a single rule, once, it can lead to much easier maintainability.
 
 ## todo
 
