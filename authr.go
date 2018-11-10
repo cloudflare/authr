@@ -172,21 +172,20 @@ func (s slugSet) Not() slugSet {
 func (s slugSet) contains(b string) (bool, error) {
 	if s.mode == wildcard {
 		return true, nil
-	} else {
-		var contained bool = false
-		for _, a := range s.elements {
-			if a == b {
-				contained = true
-				break
-			}
-		}
-		if s.mode == blacklist {
-			return !contained, nil
-		} else if s.mode == whitelist {
-			return contained, nil
-		}
-		panic(fmt.Sprintf("unknown slugset mode: '%v'", s.mode))
 	}
+	contained := false
+	for _, a := range s.elements {
+		if a == b {
+			contained = true
+			break
+		}
+	}
+	if s.mode == blacklist {
+		return !contained, nil
+	} else if s.mode == whitelist {
+		return contained, nil
+	}
+	panic(fmt.Sprintf("unknown slugset mode: '%v'", s.mode))
 }
 
 type conditionSet struct {
@@ -244,6 +243,9 @@ func (c conditionSet) evaluate(r Resource) (bool, error) {
 	return result, nil
 }
 
+// Can is the core access control computation function. It takes in a subject,
+// action, and resource. It will answer the question "Can this subject perform
+// this action on this resource?".
 func Can(s Subject, action string, r Resource) (bool, error) {
 	var (
 		err          error

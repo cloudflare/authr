@@ -1,9 +1,15 @@
 package authr
 
 import (
+	"encoding/json"
+	"errors"
+	"fmt"
 	"math/rand"
+	"os"
 	"runtime"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 type equalitytestscen struct {
@@ -220,26 +226,12 @@ func TestLooseEquality(t *testing.T) {
 				err error
 			)
 			ok, err = looseEquality(s.a, s.b)
-			if err != nil {
-				t.Errorf("error: %s", err)
-				return
-			} else {
-				if s.r != ok {
-					t.Errorf("failed asserting that %t == %t", s.r, ok)
-					return
-				}
-			}
+			require.Nil(t, err)
+			require.Equal(t, s.r, ok)
 			// flip the arguments
 			ok, err = looseEquality(s.b, s.a)
-			if err != nil {
-				t.Errorf("error: %s", err)
-				return
-			} else {
-				if s.r != ok {
-					t.Errorf("failed asserting that %t == %t (arg flip)", s.r, ok)
-					return
-				}
-			}
+			require.Nil(t, err)
+			require.Equal(t, s.r, ok, "equality result was not equal when flipping arguments")
 		})
 	}
 }
@@ -247,13 +239,21 @@ func TestLooseEquality(t *testing.T) {
 type testResource struct {
 	rtype      string
 	attributes map[string]interface{}
+
+	rterr, raerr error // errors returned from either method
 }
 
 func (t testResource) GetResourceType() (string, error) {
+	if t.rterr != nil {
+		return "", t.rterr
+	}
 	return t.rtype, nil
 }
 
 func (t testResource) GetResourceAttribute(key string) (interface{}, error) {
+	if t.raerr != nil {
+		return nil, t.raerr
+	}
 	return t.attributes[key], nil
 }
 
@@ -269,27 +269,18 @@ func TestInOperator(t *testing.T) {
 	}
 	t.Run("should loosely match id attribute in polymorphic slice", func(t *testing.T) {
 		cond := Cond("@id", "$in", []interface{}{1, "31", "55", float64(23)})
-
 		ok, err := cond.evaluate(tr)
-		if err != nil {
-			t.Errorf("test failed with unexpected error: %s", err)
-		} else if !ok {
-			t.Errorf("test failed")
-		}
+		require.Nil(t, err, "unexpected error")
+		require.True(t, ok)
 	})
 	t.Run("should return err when right operand is scalar", func(t *testing.T) {
 		_, err := Cond("@id", "$in", 5).evaluate(tr)
-		if err == nil {
-			t.Errorf("test failed, expected error, found nil")
-		}
+		require.NotNil(t, err)
 	})
 	t.Run("should evaluate to false when value not found", func(t *testing.T) {
 		ok, err := Cond("foo", "$in", "@groups").evaluate(tr)
-		if err != nil {
-			t.Errorf("test failed with unexpected error: %s", err)
-		} else if ok {
-			t.Errorf("test failed with unexpected true return false")
-		}
+		require.Nil(t, err, "unexpected error")
+		require.False(t, ok)
 	})
 }
 
@@ -305,11 +296,8 @@ func TestNotInOperator(t *testing.T) {
 	}
 	t.Run("should loosely match id attribute in polymorphic slice", func(t *testing.T) {
 		ok, err := Cond("@id", "$nin", []interface{}{1, "31", "55", float64(23)}).evaluate(tr)
-		if err != nil {
-			t.Errorf("test failed with unexpected error: %s", err)
-		} else if !ok {
-			t.Errorf("test failed")
-		}
+		require.Nil(t, err)
+		require.True(t, ok)
 	})
 	t.Run("should return err when right operand is scalar", func(t *testing.T) {
 		_, err := Cond("@user_id", "$nin", map[int]int{4: 2}).evaluate(tr)
@@ -441,10 +429,14 @@ func TestLikeOperator(t *testing.T) {
 }
 
 type testSubject struct {
+	err   error
 	rules []*Rule
 }
 
 func (t testSubject) GetRules() ([]*Rule, error) {
+	if t.err != nil {
+		return nil, t.err
+	}
 	return t.rules, nil
 }
 
@@ -481,5 +473,121 @@ func TestFull(t *testing.T) {
 	}
 	if !ok {
 		t.Fatalf("unexpected access denial")
+	}
+}
+
+func TestCan(t *testing.T) {
+	jsonlist := func(r ...string) Subject {
+		rules := make([]*Rule, len(r))
+		for i := 0; i < len(r); i++ {
+			rule := new(Rule)
+			if err := json.Unmarshal([]byte(r[i]), rule); err != nil {
+				panic(err.Error())
+			}
+			rules[i] = rule
+		}
+		if rules[0].access == "" {
+			panic("something went wrong when unmarshaling JSON rules")
+		}
+		return testSubject{rules: rules}
+	}
+	msi := func(a ...interface{}) map[string]interface{} {
+		o := make(map[string]interface{})
+		for i, v := range a {
+			if i%2 != 0 {
+				o[a[i-1].(string)] = v
+			}
+		}
+		return o
+	}
+	testerr := errors.New("testerr")
+	type testCanCase struct {
+		g, s     string
+		subject  Subject
+		act      string
+		resource Resource
+		errcheck func(error) bool
+		ok       bool
+
+		noskip bool
+	}
+	cases := []testCanCase{
+		{
+			g:        "an error being returned from subject.GetRules()",
+			s:        "return error",
+			subject:  testSubject{err: testerr},
+			act:      "testcan1",
+			resource: testResource{rtype: "thing"},
+			errcheck: func(e error) bool { return e == testerr },
+		},
+		{
+			g:        "an error being returned from resource.GetResourceType()",
+			s:        "return error",
+			subject:  testSubject{rules: []*Rule{}},
+			act:      "testcan2",
+			resource: testResource{rterr: testerr},
+			errcheck: func(e error) bool { return e == testerr },
+		},
+		{
+			g:        "a subject with NO rules",
+			s:        "default to deny all",
+			subject:  testSubject{rules: []*Rule{}},
+			act:      "testcan3",
+			resource: testResource{rtype: "thing", attributes: msi("id", 5)},
+			ok:       false,
+		},
+		{
+			g: "a subject with no rsrc_type matching rule",
+			s: "will deny",
+			subject: jsonlist(
+				`{"access":"allow","where":{"rsrc_type":"thing","rsrc_match":[],"action":"testcan4"}}`,
+			),
+			act:      "testcan4",
+			resource: testResource{rtype: "widget" /* <- different! */, attributes: msi("id", 5)},
+			ok:       false,
+		},
+		{
+			g: "a subject with no action matching rule",
+			s: "will deny",
+			subject: jsonlist(
+				`{"access":"allow","where":{"rsrc_type":"thing","rsrc_match":[],"action":"NOTtestcan6"}}`,
+			),
+			act:      "testcan6",
+			resource: testResource{rtype: "thing" /* same! */, attributes: msi("id", 5)},
+			ok:       false,
+			noskip:   true,
+		},
+	}
+	for _, c := range cases {
+		t.Run(fmt.Sprintf("given %s, Can() should %s", c.g, c.s), func(t *testing.T) {
+			if os.Getenv("TEST_CAN_SKIP") != "" && !c.noskip {
+				t.SkipNow()
+				return
+			}
+			ok, err := Can(c.subject, c.act, c.resource)
+			if err != nil {
+				if c.errcheck == nil {
+					failnow(t, "unexpected error returned: %s", err.Error())
+					return
+				}
+				assertTrue(t, !ok, "Can() returned an error AND true, this should never happen")
+				if c.errcheck != nil {
+					assertTrue(t, c.errcheck(err), "error returned from Can() did not match expected error")
+				}
+				return
+			}
+			require.Equal(t, c.ok, ok, "Can() returned wrong result (no error)")
+		})
+	}
+}
+
+func failnow(t *testing.T, format string, a ...interface{}) {
+	t.Errorf(format, a...)
+	t.FailNow()
+}
+
+func assertTrue(t *testing.T, cond bool, msg string) {
+	if !cond {
+		failnow(t, "failed assertion: %s", msg)
 	}
 }

@@ -1,9 +1,9 @@
 package authr
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
+	"strconv"
 	"strings"
 )
 
@@ -24,12 +24,9 @@ const (
 )
 
 func (r *Rule) UnmarshalJSON(data []byte) error {
-	r.reset()
-	br := bytes.NewReader(data)
-	d := json.NewDecoder(br)
+	*r = Rule{}
 	var v interface{}
-	err := d.Decode(&v)
-	if err != nil {
+	if err := json.Unmarshal(data, &v); err != nil {
 		return err
 	}
 	o, ok := v.(map[string]interface{})
@@ -37,17 +34,17 @@ func (r *Rule) UnmarshalJSON(data []byte) error {
 		return Error(fmt.Sprintf("expecting %s for rule definition, got %s", jtypeObject, typename(v)))
 	}
 	if ai, ok := o[propAccess]; ok {
-		if a, ok := ai.(string); !ok {
+		a, ok := ai.(string)
+		if !ok {
 			return jsonInvalidType([]string{propAccess}, ai, jtypeString)
-		} else {
-			switch a {
-			case "allow":
-				r = r.Access(Allow)
-			case "deny":
-				r = r.Access(Deny)
-			default:
-				return jsonInvalidPropValue([]string{propAccess}, `"allow" or "deny"`, a)
-			}
+		}
+		switch a {
+		case "allow":
+			r.access = Allow
+		case "deny":
+			r.access = Deny
+		default:
+			return jsonInvalidPropValue([]string{propAccess}, `"allow" or "deny"`, a)
 		}
 	} else {
 		return jsonMissingProperty([]string{propAccess})
@@ -70,7 +67,7 @@ func (r *Rule) UnmarshalJSON(data []byte) error {
 		if !ok {
 			return jsonMissingProperty([]string{propWhere, propWhereRsrcMatch})
 		}
-		err = unmarshalConditionSet([]string{propWhere, propWhereRsrcMatch}, &r.where.resourceMatch, csi)
+		r.where.resourceMatch, err = unmarshalConditionSet([]string{propWhere, propWhereRsrcMatch}, csi)
 		if err != nil {
 			return err
 		}
@@ -78,18 +75,19 @@ func (r *Rule) UnmarshalJSON(data []byte) error {
 		return jsonMissingProperty([]string{propWhere})
 	}
 	if meta, ok := o[propMeta]; ok {
-		r = r.Meta(meta)
+		r.meta = meta
 	}
 	return nil
 }
 
-func unmarshalConditionSet(path []string, cs *conditionSet, csi interface{}) error {
+func unmarshalConditionSet(path []string, csi interface{}) (conditionSet, error) {
+	cs := conditionSet{}
 	cs.evaluators = []Evaluator{}
 	switch _cs := csi.(type) {
 	case map[string]interface{}:
 		logic, csinneri, err := unwrapKeywordMap(path, _cs, LogicalAnd.String(), LogicalOr.String())
 		if err != nil {
-			return err
+			return conditionSet{}, err
 		}
 		switch logic {
 		case LogicalAnd.String():
@@ -100,40 +98,45 @@ func unmarshalConditionSet(path []string, cs *conditionSet, csi interface{}) err
 		path = append(path, logic)
 		switch csinner := csinneri.(type) {
 		case []interface{}:
-			err := unmarshalNestedConditions(path, cs, csinner)
+			var err error
+			cs.evaluators, err = unmarshalNestedConditions(
+				append(path, cs.logicalConjunction.String()),
+				csinner,
+			)
 			if err != nil {
-				return err
+				return conditionSet{}, err
 			}
 		default:
-			return jsonInvalidType(path, csinneri, jtypeArray)
+			return conditionSet{}, jsonInvalidType(path, csinneri, jtypeArray)
 		}
 	case []interface{}:
 		cs.logicalConjunction = LogicalAnd
-		err := unmarshalNestedConditions(path, cs, _cs)
+		var err error
+		cs.evaluators, err = unmarshalNestedConditions(path, _cs)
 		if err != nil {
-			return err
+			return conditionSet{}, err
 		}
 	default:
-		return jsonInvalidType(path, csi, jtypeObject, jtypeArray)
+		return conditionSet{}, jsonInvalidType(path, csi, jtypeObject, jtypeArray)
 	}
-	return nil
+	return cs, nil
 }
 
-func unmarshalNestedConditions(path []string, cs *conditionSet, csinner []interface{}) error {
+func unmarshalNestedConditions(path []string, csinner []interface{}) ([]Evaluator, error) {
+	evals := make([]Evaluator, len(csinner))
 	for i, v := range csinner {
 		if jarr, ok := v.([]interface{}); ok && len(jarr) == 3 && isstring(jarr[1]) {
 			// smells like a condition!
-			cs.evaluators = append(cs.evaluators, Cond(jarr[0], jarr[1].(string), jarr[2]))
-		} else {
-			nestedCs := &conditionSet{}
-			err := unmarshalConditionSet(append(path, fmt.Sprintf("%v", i)), nestedCs, v)
-			if err != nil {
-				return err
-			}
-			cs.evaluators = append(cs.evaluators, nestedCs)
+			evals[i] = Cond(jarr[0], jarr[1].(string), jarr[2])
+			continue
+		}
+		var err error
+		evals[i], err = unmarshalConditionSet(append(path, strconv.Itoa(i)), v)
+		if err != nil {
+			return nil, err
 		}
 	}
-	return nil
+	return evals, nil
 }
 
 func isstring(v interface{}) bool {
@@ -144,7 +147,7 @@ func isstring(v interface{}) bool {
 func unwrapKeywordMap(path []string, msi map[string]interface{}, validKeys ...string) (string, interface{}, error) {
 	if len(msi) == 1 {
 		var k string
-		for _k, _ := range msi {
+		for _k := range msi {
 			k = _k
 			break
 		}
