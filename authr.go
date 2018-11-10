@@ -25,7 +25,7 @@ var (
 	}
 )
 
-const Version = "2.0.0"
+const Version = "2.0.1"
 
 func init() {
 	rcache = newRegexpListCache(5)
