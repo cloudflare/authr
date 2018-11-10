@@ -3,6 +3,8 @@ package authr
 import (
 	"encoding/json"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 type unmarshalScenario struct {
@@ -108,11 +110,6 @@ func unmarshalScenarios() []unmarshalScenario {
 			err: `invalid value for property "where.rsrc_match": expected JSON object with only one of the these key(s): "$and", "$or"`,
 		},
 		{
-			n: `should err; invalid value for "where.rsrc_match" prop`,
-			d: `{"access":"deny","where":{"action":"delete","rsrc_type":"zone","rsrc_match":[[{"$or":[["@status","=","1"]]}],["@id","&",[1,2,3]]]}}`,
-			// no error
-		},
-		{
 			n:   `should err; missing "access" property`,
 			d:   `{"where":{"action":"delete","rsrc_type":"zone","rsrc_match":[]}}`,
 			err: `invalid rule; missing required property "access"`,
@@ -127,30 +124,62 @@ func unmarshalScenarios() []unmarshalScenario {
 			d:   `{"access":"allw","where":{"action":"delete","rsrc_type":"zone","rsrc_match":[]}}`,
 			err: `invalid value for property "access", expecting "allow" or "deny", got "allw"`,
 		},
+		{
+			n: "ok case 1",
+			d: `{"access":"deny","where":{"action":"delete","rsrc_type":"zone","rsrc_match":[["@id","&",[1,2,3]]]}}`,
+			r: new(Rule).
+				Access(Deny).
+				Where(
+					Action("delete"),
+					ResourceType("zone"),
+					ResourceMatch(
+						Cond("@id", "&", []interface{}{
+							float64(1),
+							float64(2),
+							float64(3),
+						}),
+					),
+				),
+		},
+		{
+			n: "ok case 2",
+			d: `{"access":"allow","where":{"action":{"$not":["delete","update"]},"rsrc_type":"zone","rsrc_match":[{"$or":[["@id","&",[1,2,3]],["@status","$in",["A","V"]]]}]}}`,
+			r: new(Rule).
+				Access(Allow).
+				Where(
+					Action("delete", "update").Not(),
+					ResourceType("zone"),
+					ResourceMatch(
+						Or(
+							Cond("@id", "&", []interface{}{
+								float64(1),
+								float64(2),
+								float64(3),
+							}),
+							Cond("@status", "$in", []interface{}{"A", "V"}),
+						),
+					),
+				),
+		},
 	}
 }
 
 func TestRuleUnmarshalJSON(t *testing.T) {
-	scens := unmarshalScenarios()
-	for _, s := range scens {
+	for _, s := range unmarshalScenarios() {
 		t.Run(s.n, func(t *testing.T) {
 			r := new(Rule)
 			err := json.Unmarshal([]byte(s.d), r)
-			if s.err != "" {
-				if err == nil {
-					t.Fatalf("expected err, got nil")
+			if err != nil {
+				if s.err == "" {
+					t.Fatalf("unexpected error: %s", err.Error())
 				} else {
 					if s.err != err.Error() {
-						t.Log("expectation failed")
-						t.Logf(`"%s" != "%s"`, s.err, err.Error())
-						t.FailNow()
+						t.Fatalf(`error expectation failed: "%s" != "%s"`, s.err, err.Error())
 					}
 				}
-			} else {
-				if err != nil {
-					t.Fatalf("unexpected error: %s", err)
-				}
+				return
 			}
+			require.Equal(t, s.r, r)
 		})
 	}
 }
