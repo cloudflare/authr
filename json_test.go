@@ -125,6 +125,11 @@ func unmarshalScenarios() []unmarshalScenario {
 			err: `invalid value for property "access", expecting "allow" or "deny", got "allw"`,
 		},
 		{
+			n:   `should err; invalid "where.rsrc_type" prop`,
+			d:   `{"access":"deny","where":{"action":"delete","rsrc_type":[],"rsrc_match":[["@id","&",[1,2,3]]]}}`,
+			err: `invalid value for property "where.rsrc_type", expecting non-empty array, got empty array`,
+		},
+		{
 			n: "ok case 1",
 			d: `{"access":"deny","where":{"action":"delete","rsrc_type":"zone","rsrc_match":[["@id","&",[1,2,3]]]}}`,
 			r: new(Rule).
