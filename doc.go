@@ -1,2 +1,2 @@
-// authr is an access control framework.
+// Package authr is an application-level (layer 7) access control framework.
 package authr

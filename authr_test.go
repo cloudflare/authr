@@ -476,7 +476,21 @@ func TestFull(t *testing.T) {
 	}
 }
 
-func TestCan(t *testing.T) {
+type testCan_case struct {
+	g, s     string
+	subject  Subject
+	act      string
+	resource Resource
+	errcheck func(error) bool
+	ok       bool
+
+	noskip bool // for debugging tests
+}
+
+func testCan_getCases() []testCan_case {
+	sub := func(r []*Rule) Subject {
+		return testSubject{rules: r}
+	}
 	jsonlist := func(r ...string) Subject {
 		rules := make([]*Rule, len(r))
 		for i := 0; i < len(r); i++ {
@@ -487,9 +501,9 @@ func TestCan(t *testing.T) {
 			rules[i] = rule
 		}
 		if rules[0].access == "" {
-			panic("something went wrong when unmarshaling JSON rules")
+			panic("something went wrong when unmarshaling JSON rules for tests")
 		}
-		return testSubject{rules: rules}
+		return sub(rules)
 	}
 	msi := func(a ...interface{}) map[string]interface{} {
 		o := make(map[string]interface{})
@@ -501,17 +515,7 @@ func TestCan(t *testing.T) {
 		return o
 	}
 	testerr := errors.New("testerr")
-	type testCanCase struct {
-		g, s     string
-		subject  Subject
-		act      string
-		resource Resource
-		errcheck func(error) bool
-		ok       bool
-
-		noskip bool
-	}
-	cases := []testCanCase{
+	return []testCan_case{
 		{
 			g:        "an error being returned from subject.GetRules()",
 			s:        "return error",
@@ -538,7 +542,7 @@ func TestCan(t *testing.T) {
 		},
 		{
 			g: "a subject with no rsrc_type matching rule",
-			s: "will deny",
+			s: "deny",
 			subject: jsonlist(
 				`{"access":"allow","where":{"rsrc_type":"thing","rsrc_match":[],"action":"testcan4"}}`,
 			),
@@ -548,46 +552,93 @@ func TestCan(t *testing.T) {
 		},
 		{
 			g: "a subject with no action matching rule",
-			s: "will deny",
+			s: "deny",
 			subject: jsonlist(
 				`{"access":"allow","where":{"rsrc_type":"thing","rsrc_match":[],"action":"NOTtestcan6"}}`,
 			),
 			act:      "testcan6",
-			resource: testResource{rtype: "thing" /* same! */, attributes: msi("id", 5)},
+			resource: testResource{rtype: "thing" /* <- same! */, attributes: msi("id", 5)},
 			ok:       false,
-			noskip:   true,
+		},
+		{
+			g: "a subject with no resource attribute matching rule",
+			s: "deny",
+			subject: jsonlist(
+				`{"access":"allow","where":{"rsrc_type":"thing","rsrc_match":[["@id","=",3]],"action":"testcan7"}}`,
+			),
+			act:      "testcan7",
+			resource: testResource{rtype: "thing", attributes: msi("id", 5)},
+			ok:       false,
+		},
+		{
+			g: "a subject with a matching rule that denies",
+			s: "deny",
+			subject: jsonlist(
+				`{"access":"deny","where":{"rsrc_type":"thing","rsrc_match":[["@id","=",5]],"action":"testcan7"}}`,
+			),
+			act:      "testcan7",
+			resource: testResource{rtype: "thing", attributes: msi("id", 5)},
+			ok:       false,
+		},
+		{
+			g: "a subject with a matching rule that allows",
+			s: "allow",
+			subject: jsonlist(
+				`{"access":"allow","where":{"rsrc_type":"thing","rsrc_match":[["@id","=",5]],"action":"testcan7"}}`,
+			),
+			act:      "testcan7",
+			resource: testResource{rtype: "thing", attributes: msi("id", 5)},
+			ok:       true,
+		},
+		{
+			g: "a subject with a blocklist",
+			s: "not match the provided action",
+			subject: sub([]*Rule{
+				new(Rule).
+					Access(Allow).
+					Where(
+						Not(Action("delete")),
+						ResourceType("thing"),
+						ResourceMatch(Cond("@id", "=", 5)),
+					),
+			}),
+			act:      "delete",
+			resource: testResource{rtype: "thing", attributes: msi("id", 5)},
+			ok:       false,
 		},
 	}
-	for _, c := range cases {
+}
+
+func BenchmarkCan(b *testing.B) {
+	for _, c := range testCan_getCases() {
+		b.Run(fmt.Sprintf("given %s, Can() should %s", c.g, c.s), func(b *testing.B) {
+			b.ReportAllocs()
+			b.ResetTimer()
+			for i := 0; i < b.N; i++ {
+				Can(c.subject, c.act, c.resource)
+			}
+		})
+	}
+}
+
+func TestCan(t *testing.T) {
+	for _, c := range testCan_getCases() {
 		t.Run(fmt.Sprintf("given %s, Can() should %s", c.g, c.s), func(t *testing.T) {
+			// Set this env var and put the "noskip: true" on whatever test you
+			// want to concentrate on :)
 			if os.Getenv("TEST_CAN_SKIP") != "" && !c.noskip {
 				t.SkipNow()
 				return
 			}
 			ok, err := Can(c.subject, c.act, c.resource)
 			if err != nil {
-				if c.errcheck == nil {
-					failnow(t, "unexpected error returned: %s", err.Error())
-					return
-				}
-				assertTrue(t, !ok, "Can() returned an error AND true, this should never happen")
-				if c.errcheck != nil {
-					assertTrue(t, c.errcheck(err), "error returned from Can() did not match expected error")
-				}
+				require.NotNil(t, c.errcheck, "unexpected error returned: %s", err.Error())
+				require.True(t, c.errcheck(err), "error returned from Can() did not match expected error")
+				require.False(t, ok, "Can() returned an error AND true, this should never happen")
 				return
 			}
+			require.Nil(t, c.errcheck, "expected error to be returned, none returned")
 			require.Equal(t, c.ok, ok, "Can() returned wrong result (no error)")
 		})
-	}
-}
-
-func failnow(t *testing.T, format string, a ...interface{}) {
-	t.Errorf(format, a...)
-	t.FailNow()
-}
-
-func assertTrue(t *testing.T, cond bool, msg string) {
-	if !cond {
-		failnow(t, "failed assertion: %s", msg)
 	}
 }

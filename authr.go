@@ -53,26 +53,26 @@ const (
 	Deny Access = "deny"
 )
 
-// LogicalConjunction is the representation of the logic that joins condition
+// logicalConjunction is the representation of the logic that joins condition
 // sets
-type LogicalConjunction string
+type logicalConjunction string
 
-func (l LogicalConjunction) String() string {
+func (l logicalConjunction) String() string {
 	return string(l)
 }
 
 const (
-	// LogicalAnd is used as a single key in a map to denote a set of conditions
+	// logicalAnd is used as a single key in a map to denote a set of conditions
 	// that should be evaluated and all values should be true, to return true
-	LogicalAnd LogicalConjunction = "$and"
+	logicalAnd logicalConjunction = "$and"
 
-	// LogicalOr is used as a single key in a map to denote a set of conditions
+	// logicalOr is used as a single key in a map to denote a set of conditions
 	// that should be evaluated and any values should be true to return true
-	LogicalOr LogicalConjunction = "$or"
+	logicalOr logicalConjunction = "$or"
 
 	// ImpliedConjunction is the default conjunction on condition sets that do
 	// not have an explicit conjunction
-	ImpliedConjunction = LogicalAnd
+	ImpliedConjunction = logicalAnd
 )
 
 // Subject is an abstract representation of an entity capable of performing
@@ -102,18 +102,35 @@ type Resource interface {
 	GetResourceAttribute(string) (interface{}, error)
 }
 
-// Rule represents the basic building block of an access control system. Rules
+// Rule represents the basic building block of an access control system. They
+// can be likened to a single statement in an access-control list (ACL). Rules
 // are entities which are said to "belong" to subjects in that they have been
 // granted or applied to subjects based on the state of a datastore or the state
 // of the subject themselves.
 //
-// Rules have a few sections which constitute a valid authr rule.
+// Building rules in Go (instead of say Unmarshaling from JSON) looks like this:
+//     r := new(Rule).
+//         Access(Allow).
+//         Where(
+//             Action("delete"),
+//             Not(ResourceType("user")),
+//             ResourceMatch(
+//                 Cond("@id", "!=", "1"),
+//                 Or(
+//                     Cond("@status", "=", "active"),
+//                     Cond("@deleted_date", "=", nil),
+//                 ),
+//             ),
+//         )
+// This can be quite verbose, externally. A suggestion to reduce the verbosity
+// might be to have a dedicate .go file that specifies rules where you can dot
+// import authr. (https://golang.org/ref/spec#Import_declarations)
 type Rule struct {
 	access Access
 	where  struct {
-		resourceType  slugSet
-		resourceMatch conditionSet
-		action        slugSet
+		resourceType  SlugSet
+		resourceMatch ConditionSet
+		action        SlugSet
 	}
 	meta interface{}
 }
@@ -128,7 +145,7 @@ func (r Rule) Meta(meta interface{}) *Rule {
 	return &r
 }
 
-func (r Rule) Where(action, resourceType slugSet, conditions conditionSet) *Rule {
+func (r Rule) Where(action, resourceType SlugSet, conditions ConditionSet) *Rule {
 	r.where.action = action
 	r.where.resourceType = resourceType
 	r.where.resourceMatch = conditions
@@ -142,34 +159,59 @@ func (r *Rule) reset() {
 type slugSetMode int
 
 const (
-	whitelist slugSetMode = iota
-	blacklist
+	allowlist slugSetMode = iota
+	blocklist
 	wildcard
 )
 
-type slugSet struct {
+// SlugSet is an internal means of representing an arbitrary set of strings. The
+// "rsrc_type" and "action" sections of a rule have this type.
+type SlugSet struct {
 	mode     slugSetMode
 	elements []string
 }
 
-func ResourceType(sset ...string) slugSet {
-	ss := slugSet{}
-	ss.elements = sset
+func newSlugSet(slugs []string) SlugSet {
+	ss := SlugSet{}
+	if len(slugs) == 1 && slugs[0] == "*" {
+		ss.mode = wildcard
+		slugs = []string{}
+	}
+	ss.elements = slugs
 	return ss
 }
 
-func Action(sset ...string) slugSet {
-	return slugSet{
-		elements: sset,
-	}
+// ResourceType allows for the specification of resource types in a rule. The
+// default mode is an "allowlist". Use Not(Action(...)) to specify a "blocklist"
+func ResourceType(sset ...string) SlugSet {
+	return newSlugSet(sset)
 }
 
-func (s slugSet) Not() slugSet {
-	s.mode = blacklist
+// Action allows for the specification of actions in a rule. The default mode is
+// an "allowlist". Use Not(Action(...)) to specify a "blocklist"
+func Action(sset ...string) SlugSet {
+	return newSlugSet(sset)
+}
+
+// Not will return a copy of the provided SlugSet that will operate in a blocklist
+// mode. Meaning the elements if matched in a calculation will return "false"
+func Not(s SlugSet) SlugSet {
+	s.mode = blocklist
 	return s
 }
 
-func (s slugSet) contains(b string) (bool, error) {
+// Not is a way to turn a SlugSet into a blocklist instead of the default
+// allowlist mode.
+//
+// DEPRECATED: this API is awkward, use the authr.Not(Action("foo", "bar"))
+// method instead.
+// TODO(nkcmr): remove this in v3 of authr
+func (s SlugSet) Not() SlugSet {
+	s.mode = blocklist
+	return s
+}
+
+func (s SlugSet) contains(b string) (bool, error) {
 	if s.mode == wildcard {
 		return true, nil
 	}
@@ -180,23 +222,23 @@ func (s slugSet) contains(b string) (bool, error) {
 			break
 		}
 	}
-	if s.mode == blacklist {
+	if s.mode == blocklist {
 		return !contained, nil
-	} else if s.mode == whitelist {
+	} else if s.mode == allowlist {
 		return contained, nil
 	}
 	panic(fmt.Sprintf("unknown slugset mode: '%v'", s.mode))
 }
 
-type conditionSet struct {
-	logicalConjunction LogicalConjunction
-	evaluators         []Evaluator
+type ConditionSet struct {
+	conj       logicalConjunction
+	evaluators []Evaluator
 }
 
 // ResourceMatch is just a more readable way to start the rsrc_match section of
 // a rule. It uses the implied logical conjunction AND.
-func ResourceMatch(es ...Evaluator) conditionSet {
-	return And(es...).(conditionSet)
+func ResourceMatch(es ...Evaluator) ConditionSet {
+	return And(es...).(ConditionSet)
 }
 
 // And returns an Evaluator that combines multiple Evaluators and will evaluate
@@ -205,9 +247,9 @@ func ResourceMatch(es ...Evaluator) conditionSet {
 // false or all return true. Once it finds a negative evaluator, it will halt
 // and return — also known as short-circuiting.
 func And(subEvaluators ...Evaluator) Evaluator {
-	return conditionSet{
-		logicalConjunction: LogicalAnd,
-		evaluators:         subEvaluators,
+	return ConditionSet{
+		conj:       logicalAnd,
+		evaluators: subEvaluators,
 	}
 }
 
@@ -215,25 +257,25 @@ func And(subEvaluators ...Evaluator) Evaluator {
 // logical conjunction. Meaning it will evaluate until a sub-evaluator returns
 // true, and also short-circuit.
 func Or(subEvaluators ...Evaluator) Evaluator {
-	return conditionSet{
-		logicalConjunction: LogicalOr,
-		evaluators:         subEvaluators,
+	return ConditionSet{
+		conj:       logicalOr,
+		evaluators: subEvaluators,
 	}
 }
 
-func (c conditionSet) evaluate(r Resource) (bool, error) {
+func (c ConditionSet) evaluate(r Resource) (bool, error) {
 	result := true // Vacuous truth: https://en.wikipedia.org/wiki/Vacuous_truth
 	for _, eval := range c.evaluators {
 		subresult, err := eval.evaluate(r)
 		if err != nil {
 			return false, err
 		}
-		if c.logicalConjunction == LogicalOr {
+		if c.conj == logicalOr {
 			if subresult {
 				return true, nil // short-circuit
 			}
 			result = false
-		} else if c.logicalConjunction == LogicalAnd {
+		} else if c.conj == logicalAnd {
 			if !subresult {
 				return false, nil // short-cicuit
 			}

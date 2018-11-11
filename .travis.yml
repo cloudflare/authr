@@ -4,14 +4,14 @@ matrix:
       go: '1.11'
       script:
         - go get -t .
-        - go test -race .
+        - go test -race -v -coverprofile=/dev/null .
         # go 1.11 runs "vet" by default with go test
     - language: go
       go: '1.10'
       script: &go_script
         - go get -t .
-        - go test -race .
         - go vet
+        - go test -race -v -coverprofile=/dev/null .
     - language: go
       go: '1.9'
       script: *go_script

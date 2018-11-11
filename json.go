@@ -44,7 +44,7 @@ func (r *Rule) UnmarshalJSON(data []byte) error {
 		case "deny":
 			r.access = Deny
 		default:
-			return jsonInvalidPropValue([]string{propAccess}, `"allow" or "deny"`, a)
+			return jsonInvalidPropValue([]string{propAccess}, `"allow" or "deny"`, fmt.Sprintf(`"%s"`, a))
 		}
 	} else {
 		return jsonMissingProperty([]string{propAccess})
@@ -80,44 +80,44 @@ func (r *Rule) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-func unmarshalConditionSet(path []string, csi interface{}) (conditionSet, error) {
-	cs := conditionSet{}
+func unmarshalConditionSet(path []string, csi interface{}) (ConditionSet, error) {
+	cs := ConditionSet{}
 	cs.evaluators = []Evaluator{}
 	switch _cs := csi.(type) {
 	case map[string]interface{}:
-		logic, csinneri, err := unwrapKeywordMap(path, _cs, LogicalAnd.String(), LogicalOr.String())
+		logic, csinneri, err := unwrapKeywordMap(path, _cs, logicalAnd.String(), logicalOr.String())
 		if err != nil {
-			return conditionSet{}, err
+			return ConditionSet{}, err
 		}
 		switch logic {
-		case LogicalAnd.String():
-			cs.logicalConjunction = LogicalAnd
-		case LogicalOr.String():
-			cs.logicalConjunction = LogicalOr
+		case logicalAnd.String():
+			cs.conj = logicalAnd
+		case logicalOr.String():
+			cs.conj = logicalOr
 		}
 		path = append(path, logic)
 		switch csinner := csinneri.(type) {
 		case []interface{}:
 			var err error
 			cs.evaluators, err = unmarshalNestedConditions(
-				append(path, cs.logicalConjunction.String()),
+				append(path, cs.conj.String()),
 				csinner,
 			)
 			if err != nil {
-				return conditionSet{}, err
+				return ConditionSet{}, err
 			}
 		default:
-			return conditionSet{}, jsonInvalidType(path, csinneri, jtypeArray)
+			return ConditionSet{}, jsonInvalidType(path, csinneri, jtypeArray)
 		}
 	case []interface{}:
-		cs.logicalConjunction = LogicalAnd
+		cs.conj = logicalAnd
 		var err error
 		cs.evaluators, err = unmarshalNestedConditions(path, _cs)
 		if err != nil {
-			return conditionSet{}, err
+			return ConditionSet{}, err
 		}
 	default:
-		return conditionSet{}, jsonInvalidType(path, csi, jtypeObject, jtypeArray)
+		return ConditionSet{}, jsonInvalidType(path, csi, jtypeObject, jtypeArray)
 	}
 	return cs, nil
 }
@@ -168,7 +168,7 @@ func unwrapKeywordMap(path []string, msi map[string]interface{}, validKeys ...st
 	return "", nil, err
 }
 
-func unmarshalSlugSet(ss *slugSet, prop string, w map[string]interface{}) error {
+func unmarshalSlugSet(ss *SlugSet, prop string, w map[string]interface{}) error {
 	path := []string{propWhere, prop}
 	ssi, ok := w[prop]
 	if !ok {
@@ -181,9 +181,10 @@ func unmarshalSlugSet(ss *slugSet, prop string, w map[string]interface{}) error 
 			return err
 		}
 		path = append(path, "$not")
-		ss.mode = blacklist
+		ss.mode = blocklist
 		switch ssn := ssni.(type) {
 		case []interface{}:
+			// empty slug set IS allowed if the slugset is a blocklist.
 			err := unmarshalStringSlice(path, ss, ssn)
 			if err != nil {
 				return err
@@ -194,25 +195,31 @@ func unmarshalSlugSet(ss *slugSet, prop string, w map[string]interface{}) error 
 			return jsonInvalidType(path, ssni, jtypeArray, jtypeString)
 		}
 	case []interface{}:
+		// empty slug set is NOT allowed if the slug set is not a blocklist
+		// the rule would never match anything
+		if len(_ss) == 0 {
+			return jsonInvalidPropValue(path, "non-empty array", "empty array")
+		}
 		err := unmarshalStringSlice(path, ss, _ss)
 		if err != nil {
 			return err
 		}
 	case string:
 		if _ss == "*" {
-			ss.mode = whitelist
+			ss.mode = wildcard
+			ss.elements = []string{}
+		} else {
+			ss.elements = []string{_ss}
 		}
-		ss.elements = []string{_ss}
 	default:
 		return jsonInvalidType(path, ssi, jtypeObject, jtypeArray, jtypeString)
 	}
 	return nil
 }
 
-func unmarshalStringSlice(path []string, ss *slugSet, jarr []interface{}) error {
+func unmarshalStringSlice(path []string, ss *SlugSet, jarr []interface{}) error {
 	ss.elements = make([]string, len(jarr))
 	for i, v := range jarr {
-		// TODO(nick): check for zero items in this slice
 		// TODO(nick): check for empty strings
 		s, ok := v.(string)
 		if !ok {
@@ -270,7 +277,7 @@ type jsonInvalidPropertyValueError struct {
 }
 
 func (j jsonInvalidPropertyValueError) Error() string {
-	return fmt.Sprintf(`invalid value for property "%s", expecting %s, got "%s"`, strings.Join(j.path, "."), j.expecting, j.got)
+	return fmt.Sprintf(`invalid value for property "%s", expecting %s, got %s`, strings.Join(j.path, "."), j.expecting, j.got)
 }
 
 func jsonInvalidPropValue(path []string, e, g string) error {
