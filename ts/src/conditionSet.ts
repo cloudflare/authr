@@ -16,6 +16,13 @@ interface IConditionSetInteral {
     conjunction: Conjunction
 }
 
+function isConditionTuple(v?: any): v is [any, string, any] {
+    if (!isArray(v) || v.length !== 3) {
+        return false;
+    }
+    return isString(v[1]);
+}
+
 export default class ConditionSet implements IJSONSerializable, IEvaluator {
 
     private [$authr]: IConditionSetInteral = {
@@ -25,7 +32,11 @@ export default class ConditionSet implements IJSONSerializable, IEvaluator {
 
     constructor(spec: any) {
         if (isPlainObject(spec)) {
-            const [conj] = Object.keys(spec);
+            const objKeys = Object.keys(spec);
+            if (objKeys.length !== 1) {
+                throw new AuthrError(`Malformed condition set, expected only 1 key in object, got ${objKeys.length.toString(10)}`);
+            }
+            const conj = objKeys[0];
             if (conj !== Conjunction.AND && conj !== Conjunction.OR) {
                 throw new AuthrError(`Unknown condition set conjunction: ${conj}`);
             }
@@ -39,7 +50,7 @@ export default class ConditionSet implements IJSONSerializable, IEvaluator {
             if (empty(rawe)) {
                 continue;
             }
-            if (isArray(rawe) && rawe.length === 3 && isString(rawe[0])) {
+            if (isConditionTuple(rawe)) {
                 const [l, o, r] = rawe;
                 this[$authr].evaluators.push(new Condition(l, o, r));
             } else {
