@@ -16,6 +16,15 @@ interface IConditionSetInteral {
     conjunction: Conjunction
 }
 
+type ConditionTuple = [any, string, any];
+
+function isConditionTuple(v?: any): v is ConditionTuple {
+    if (!v) {
+        return false;
+    }
+    return isArray(v) && v.length === 3 && isString(v[1]);
+}
+
 export default class ConditionSet implements IJSONSerializable, IEvaluator {
 
     private [$authr]: IConditionSetInteral = {
@@ -39,7 +48,7 @@ export default class ConditionSet implements IJSONSerializable, IEvaluator {
             if (empty(rawe)) {
                 continue;
             }
-            if (isArray(rawe) && rawe.length === 3 && isString(rawe[0])) {
+            if (isConditionTuple(rawe)) {
                 const [l, o, r] = rawe;
                 this[$authr].evaluators.push(new Condition(l, o, r));
             } else {
