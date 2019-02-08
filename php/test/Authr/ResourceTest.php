@@ -4,14 +4,13 @@ namespace Cloudflare\Test\Authr;
 
 use Cloudflare\Test\TestCase;
 use Cloudflare\Authr\Resource;
+use Cloudflare\Authr\Exception\InvalidAdHocResourceException;
 
 class ResourceTest extends TestCase
 {
-    /**
-     * @expectedException Cloudflare\Authr\Exception\InvalidAdHocResourceException
-     */
     public function testUnspecifiedType()
     {
+        $this->expectException(InvalidAdHocResourceException::class);
         $rsrc = Resource::adhoc('', []);
     }
 

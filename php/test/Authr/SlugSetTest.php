@@ -4,6 +4,7 @@ namespace Cloudflare\Test\Authr;
 
 use Cloudflare\Test\TestCase;
 use Cloudflare\Authr\SlugSet;
+use Cloudflare\Authr\Exception;
 
 class SlugSetTest extends TestCase
 {
@@ -49,11 +50,9 @@ class SlugSetTest extends TestCase
         $this->assertTrue($set->contains('thisthing'));
     }
 
-    /**
-     * @expectedException Cloudflare\Authr\Exception
-     */
     public function testConstructWeirdValue()
     {
+        $this->expectException(Exception::class);
         new SlugSet(111);
     }
 

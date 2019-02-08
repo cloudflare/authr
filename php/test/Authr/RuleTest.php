@@ -4,6 +4,10 @@ namespace Cloudflare\Test\Authr;
 
 use Cloudflare\Test\TestCase;
 use Cloudflare\Authr\Rule;
+use Cloudflare\Authr\Exception\{
+    RuntimeException,
+    InvalidRuleException
+};
 
 class RuleTest extends TestCase
 {
@@ -37,9 +41,9 @@ class RuleTest extends TestCase
         $this->assertFalse($rule->actions()->contains('delete'));        
     }
 
-    /** @expectedException Cloudflare\Authr\Exception\RuntimeException */
     public function testJSONDecodeFail()
     {
+        $this->expectException(RuntimeException::class);
         $rulejson = '{"access":"all'; // eek! bad json!
         $rule = Rule::create($rulejson);
     }
@@ -58,10 +62,10 @@ class RuleTest extends TestCase
 
     /**
      * @dataProvider provideInvalidRuleScenarios
-     * @expectedException Cloudflare\Authr\Exception\InvalidRuleException
      */
     public function testInvalidRule($ruleraw)
     {
+        $this->expectException(InvalidRuleException::class);
         $rule = Rule::create($ruleraw);
     }
 

@@ -6,12 +6,13 @@ use Cloudflare\Test\TestCase;
 use Cloudflare\Authr\Resource;
 use Cloudflare\Authr\ConditionSet;
 use Cloudflare\Authr\Condition;
+use Cloudflare\Authr\Exception\InvalidConditionSetException;
 
 class ConditionSetTest extends TestCase
 {
     protected $testResource = null;
 
-    public function setup()
+    public function setUp(): void
     {
         $this->testResource = Resource::adhoc('thing', [
             'id' => '123',
@@ -20,11 +21,9 @@ class ConditionSetTest extends TestCase
         ]);
     }
 
-    /**
-     * @expectedException Cloudflare\Authr\Exception\InvalidConditionSetException
-     */
     public function testConstructWeirdValue()
     {
+        $this->expectException(InvalidConditionSetException::class);
         $x = new ConditionSet(222);
     }
 

@@ -5,12 +5,13 @@ namespace Cloudflare\Test\Authr;
 use Cloudflare\Test\TestCase;
 use Cloudflare\Authr\Resource;
 use Cloudflare\Authr\Condition;
+use Cloudflare\Authr\Exception\InvalidConditionOperator;
 
 class ConditionTest extends TestCase
 {
     protected $testResource = null;
 
-    public function setup()
+    public function setUp(): void
     {
         $this->testResource = Resource::adhoc('thing', [
             'id' => '123',
@@ -21,11 +22,9 @@ class ConditionTest extends TestCase
         ]);
     }
 
-    /**
-     * @expectedException Cloudflare\Authr\Exception\InvalidConditionOperator
-     */
     public function testUnknownOperator()
     {
+        $this->expectException(InvalidConditionOperator::class);
         $a = new Condition('@id', '@>', '4');
     }
 
