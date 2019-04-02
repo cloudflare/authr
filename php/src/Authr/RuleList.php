@@ -9,7 +9,7 @@ use IteratorAggregate;
  * RuleList is a container for the list of rules returned by subjects. By making
  * it a separate class, we can leverage PHP7's stronger typing and skip a lot of
  * user-space type checks in the core evaluator, thus getting some speed
- * improvments.
+ * improvements.
  */
 final class RuleList implements IteratorAggregate
 {

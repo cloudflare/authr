@@ -11,7 +11,7 @@ enum Conjunction {
 
 const IMPLIED_CONJUNCTION = Conjunction.AND;
 
-interface IConditionSetInteral {
+interface IConditionSetInternal {
     evaluators: IEvaluator[],
     conjunction: Conjunction
 }
@@ -27,7 +27,7 @@ function isConditionTuple(v?: any): v is ConditionTuple {
 
 export default class ConditionSet implements IJSONSerializable, IEvaluator {
 
-    private [$authr]: IConditionSetInteral = {
+    private [$authr]: IConditionSetInternal = {
         conjunction: IMPLIED_CONJUNCTION,
         evaluators: []
     };

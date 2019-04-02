@@ -11,7 +11,7 @@ final class ConditionSet implements EvaluatorInterface
 
     /**
      * If ConditionSet receives an array that is not prepended with a
-     * conjunction, it will infer the logical conjuction.
+     * conjunction, it will infer the logical conjunction.
      */
     const IMPLIED_CONJUNCTION = self::LOGICAL_AND;
 

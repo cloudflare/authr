@@ -277,7 +277,7 @@ func (c ConditionSet) evaluate(r Resource) (bool, error) {
 			result = false
 		} else if c.conj == logicalAnd {
 			if !subresult {
-				return false, nil // short-cicuit
+				return false, nil // short-circuit
 			}
 			result = true
 		}

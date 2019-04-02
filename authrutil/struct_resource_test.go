@@ -29,7 +29,7 @@ func TestStructResource(t *testing.T) {
 		require.Nil(t, err)
 		require.Equal(t, "boom!", avbar.(string))
 	})
-	t.Run("should return <nil> for non-existant struct fields", func(t *testing.T) {
+	t.Run("should return <nil> for nonexistent struct fields", func(t *testing.T) {
 		sr := StructResource("thing", struct {
 			Foo int
 			Bar string

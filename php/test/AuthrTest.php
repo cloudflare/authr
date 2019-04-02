@@ -88,7 +88,7 @@ class AuthrTest extends TestCase
                 [['delete', $rshort('record', ['zone_id' => '123', 'type' => 'A']), true]]
             ],
 
-            'denying permission should explicity deny something even though there are lower-ranked permissions that would potentially allow' => [
+            'denying permission should explicitly deny something even though there are lower-ranked permissions that would potentially allow' => [
                 [
                     $pshort(Authr\Rule::DENY, 'record', [['@zone_id', '=', '324']], 'delete'),
                     $pshort(Authr\Rule::ALLOW, 'record', [], '*') // allow any action on any record!

@@ -172,7 +172,7 @@ final class Authr implements AuthrInterface
             if (static::isList($value) && count($value) === 3 && is_string($value[1])) {
                 // this is a single condition, just check the operator
                 if (!in_array($value[1], static::getValidOperators(), true)) {
-                    throw new Exception\ValidationException("Unknown operater found in a condition in 'rsrc_match': '{$value[1]}'");
+                    throw new Exception\ValidationException("Unknown operator found in a condition in 'rsrc_match': '{$value[1]}'");
                 }
             } else {
                 $this->validateRuleConditionSet($value);

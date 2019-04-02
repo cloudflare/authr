@@ -48,7 +48,7 @@ final class Rule implements \JsonSerializable
 
     /**
      * A key in a rule where its value can be anything. This is useful for
-     * storing information about its origins or for distiguishing it somewhow.
+     * storing information about its origins or for distinguishing it somewhow.
      */
     const META = '$meta';
 
@@ -186,7 +186,7 @@ final class Rule implements \JsonSerializable
             ];
         }
         if (!is_array($where)) {
-            throw new Exception\InvalidRuleException(sprintf("Rule constructor expectes 'all' or array for argument 2, got %s", gettype($where)));
+            throw new Exception\InvalidRuleException(sprintf("Rule constructor expects 'all' or array for argument 2, got %s", gettype($where)));
         }
 
         foreach ($where as $seg => $segspec) {

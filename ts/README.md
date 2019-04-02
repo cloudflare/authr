@@ -18,7 +18,7 @@ symbols have a lot of uses, but for authr's purposes, it guarantees that a certa
 #### GET_RULES
 in order to establish an subject (also called "actor") in this system, this constant MUST be the key in an object that is assigned to a callable function. when the function is called, it must return an array of `Rule`s.
 
-the typescript interface defintion is this:
+the typescript interface definition is this:
 
 ```typescript
 interface ISubject {
@@ -49,7 +49,7 @@ var user = {
 
 once you have this, you have just setup a subject in the authr framework! subjects are entities in a system that are capable of taking actions against specific resources.
 
-for resources, there are *two* symbols to implement on your object to make it a recongizable resource.
+for resources, there are *two* symbols to implement on your object to make it a recognizable resource.
 
 #### GET_RESOURCE_TYPE
 
@@ -63,7 +63,7 @@ var resource = {
 };
 ```
 
-pretty simple function, right? resources in the permission framework are entites that are capable of being acted upon, like a zone (a cloudflare object), or even a user.
+pretty simple function, right? resources in the permission framework are entities that are capable of being acted upon, like a zone (a cloudflare object), or even a user.
 
 #### GET_RESOURCE_ATTRIBUTE
 this constant MUST be the key in an object that is assigned to a callable function. when the function is called, it will be given one string parameter that designates the key of the attribute being looked for. like so:
