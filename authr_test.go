@@ -418,7 +418,7 @@ func TestLikeOperator(t *testing.T) {
 			t.Errorf("test failed")
 		}
 	})
-	t.Run("should not match a string that does NOT end with a specifed pattern", func(t *testing.T) {
+	t.Run("should not match a string that does NOT end with a specified pattern", func(t *testing.T) {
 		ok, err := Cond("@tag", "~=", "*bla").evaluate(tr)
 		if err != nil {
 			t.Errorf("test failed with unexpected error: %s", err)
