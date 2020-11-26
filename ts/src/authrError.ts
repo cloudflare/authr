@@ -1,2 +1,1 @@
-export default class AuthrError extends Error {
-}
+export default class AuthrError extends Error {}

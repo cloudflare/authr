@@ -72,16 +72,16 @@ class AuthrTest extends TestCase
                 [['update', $rshort('record', ['name' => 'blog.example.com', 'zone_id' => '123']), false]]
             ],
 
-            'possible pitfall: blacklist ignored, action granted by lower-ranked permission' => [
+            'possible pitfall: blocklist ignored, action granted by lower-ranked permission' => [
                 [
                     // permission evaluator will green-light resource match, then
-                    // see "delete" in blacklist. returns false, continues to
+                    // see "delete" in blocklist. returns false, continues to
                     // evaluate subsequent permission.
                     $pshort(Authr\Rule::ALLOW, 'record', [['@zone_id', '=', '123']], ['$not' => ['delete', 'change_service_mode']]),
 
                     // permission evaluator will green-light resource match, NOT see
-                    // "delete" in its blacklist, return true. therefore, a
-                    // permission that wanted to blacklist "delete" gets overridden
+                    // "delete" in its blocklist, return true. therefore, a
+                    // permission that wanted to blocklist "delete" gets overridden
                     // by another permission
                     $pshort(Authr\Rule::ALLOW, 'record', [['@zone_id', '=', '123'], ['@type', '=', 'A']], ['$not' => 'change_service_mode'])
                 ],

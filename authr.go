@@ -25,7 +25,7 @@ var (
 	}
 )
 
-const Version = "2.0.1"
+const Version = "3.0.0"
 
 func init() {
 	rcache = newRegexpListCache(5)
@@ -85,7 +85,7 @@ type Subject interface {
 	GetRules() ([]*Rule, error)
 }
 
-// Resource is an abstract representation of an entity the is the target of
+// Resource is an abstract representation of an entity that is the target of
 // actions performed by subjects. Resources have a type and attributes.
 //
 // A "type" is what you might expect. If a blog were in need of an access
@@ -152,10 +152,6 @@ func (r Rule) Where(action, resourceType SlugSet, conditions ConditionSet) *Rule
 	return &r
 }
 
-func (r *Rule) reset() {
-	*r = Rule{}
-}
-
 type slugSetMode int
 
 const (
@@ -196,17 +192,6 @@ func Action(sset ...string) SlugSet {
 // Not will return a copy of the provided SlugSet that will operate in a blocklist
 // mode. Meaning the elements if matched in a calculation will return "false"
 func Not(s SlugSet) SlugSet {
-	s.mode = blocklist
-	return s
-}
-
-// Not is a way to turn a SlugSet into a blocklist instead of the default
-// allowlist mode.
-//
-// DEPRECATED: this API is awkward, use the authr.Not(Action("foo", "bar"))
-// method instead.
-// TODO(nkcmr): remove this in v3 of authr
-func (s SlugSet) Not() SlugSet {
 	s.mode = blocklist
 	return s
 }
@@ -613,7 +598,7 @@ func looseEquality(left, right interface{}) (bool, error) {
 		case bool:
 			return l == r, nil
 		case nil:
-			return l == false, nil
+			return !l, nil
 		default:
 			return false, Error(fmt.Sprintf("unsupported type in loose equality check: '%T'", r))
 		}
@@ -624,7 +609,7 @@ func looseEquality(left, right interface{}) (bool, error) {
 		case int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64, float32, float64:
 			return numbertofloat64(r) == float64(0), nil
 		case bool:
-			return r == false, nil
+			return !r, nil
 		case nil:
 			return true, nil
 		default:

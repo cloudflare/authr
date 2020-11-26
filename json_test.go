@@ -152,7 +152,7 @@ func unmarshalScenarios() []unmarshalScenario {
 			r: new(Rule).
 				Access(Allow).
 				Where(
-					Action("delete", "update").Not(),
+					Not(Action("delete", "update")),
 					ResourceType("zone"),
 					ResourceMatch(
 						Or(

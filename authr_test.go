@@ -149,14 +149,13 @@ func BenchmarkLooseEquality(b *testing.B) {
 type regexptestscen struct {
 	n, op, p string
 	v        interface{}
-	r        bool
 }
 
 func getregexpscens() []regexptestscen {
 	return []regexptestscen{
-		{n: "int(33)~*^foo$=>false", op: "~*", p: "^foo$", v: 33, r: false},
-		{n: `"foo-one"~*^Foo=>true`, op: "~*", p: "^Foo", v: "foo-one", r: true},
-		{n: `"bar-two"~^Bar=>false`, op: "~", p: "^Bar", v: "bar-two", r: false},
+		{n: "int(33)~*^foo$=>false", op: "~*", p: "^foo$", v: 33},
+		{n: `"foo-one"~*^Foo=>true`, op: "~*", p: "^Foo", v: "foo-one"},
+		{n: `"bar-two"~^Bar=>false`, op: "~", p: "^Bar", v: "bar-two"},
 	}
 }
 
@@ -213,7 +212,7 @@ func BenchmarkRegexpOperatorThrash(b *testing.B) {
 		if !ok {
 			b.Fatalf("unknown operator: %s", t.op)
 		}
-		op.compute(t.v, t.p)
+		_, _ = op.compute(t.v, t.p)
 	}
 }
 
@@ -615,7 +614,7 @@ func BenchmarkCan(b *testing.B) {
 			b.ReportAllocs()
 			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
-				Can(c.subject, c.act, c.resource)
+				_, _ = Can(c.subject, c.act, c.resource)
 			}
 		})
 	}

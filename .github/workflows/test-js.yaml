@@ -1,0 +1,23 @@
+name: JavaScript Tests
+
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron: "0 0 * * 0" # weekly
+
+jobs:
+  test-js:
+    runs-on: ubuntu-latest
+    name: Test JS (Node.JS v${{ matrix.node_js }})
+    strategy:
+      matrix:
+        node_js: ["12", "13", "14", "15"]
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2-beta
+        with:
+          node-version: ${{ matrix.node_js }}
+      - name: Test
+        run: |
+          make -C ts/ test

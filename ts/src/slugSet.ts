@@ -1,79 +1,80 @@
-import AuthrError from './authrError';
-import { isPlainObject, $authr } from './util';
+import AuthrError from "./authrError";
+import { $authr, isPlainObject } from "./util";
 
 enum Mode {
-    BLACKLIST = 0,
-    WHITELIST = 1,
-    WILDCARD = 2
-};
+  BLOCKLIST = 0,
+  ALLOWLIST = 1,
+  WILDCARD = 2,
+}
 
-const NOT = '$not';
+const NOT = "$not";
 
 interface ISlugSetInternal {
-    mode: Mode,
-    items: string[]
+  mode: Mode;
+  items: string[];
 }
 
-interface IBlacklistSpec {
-    [NOT]: any
+interface IBlocklistSpec {
+  [NOT]: any;
 }
 
-function isBlacklistSpec(v: any): v is IBlacklistSpec {
-    if (isPlainObject(v)) {
-        return v.hasOwnProperty(NOT);
-    }
-    return false;
+function isBlocklistSpec(v: any): v is IBlocklistSpec {
+  if (isPlainObject(v)) {
+    return v.hasOwnProperty(NOT);
+  }
+  return false;
 }
 
 export default class SlugSet {
+  private [$authr]: ISlugSetInternal;
 
-    private [$authr]: ISlugSetInternal;
+  constructor(spec: any) {
+    this[$authr] = {
+      mode: Mode.ALLOWLIST,
+      items: [],
+    };
+    if (spec === "*") {
+      this[$authr].mode = Mode.WILDCARD;
+    } else {
+      if (isBlocklistSpec(spec)) {
+        this[$authr].mode = Mode.BLOCKLIST;
+        spec = spec[NOT];
+      }
+      if (typeof spec === "string") {
+        spec = [spec];
+      }
+      if (!Array.isArray(spec)) {
+        throw new AuthrError(
+          "SlugSet constructor expects a string, array or object for argument 1"
+        );
+      }
+      this[$authr].items = spec;
+    }
+  }
 
-    constructor(spec: any) {
-        this[$authr] = {
-            mode: Mode.WHITELIST,
-            items: []
-        };
-        if (spec === '*') {
-            this[$authr].mode = Mode.WILDCARD;
-        } else {
-            if (isBlacklistSpec(spec)) {
-                this[$authr].mode = Mode.BLACKLIST;
-                spec = spec[NOT];
-            }
-            if (typeof spec === 'string') {
-                spec = [spec];
-            }
-            if (!Array.isArray(spec)) {
-                throw new AuthrError('SlugSet constructor expects a string, array or object for argument 1');
-            }
-            this[$authr].items = spec;
-        }
+  contains(needle: string): boolean {
+    if (this[$authr].mode === Mode.WILDCARD) {
+      return true;
+    }
+    const doesContain = this[$authr].items.includes(needle);
+    if (this[$authr].mode === Mode.BLOCKLIST) {
+      return !doesContain;
     }
 
-    contains(needle: string): boolean {
-        if (this[$authr].mode === Mode.WILDCARD) {
-            return true;
-        }
-        const doesContain = this[$authr].items.includes(needle);
-        if (this[$authr].mode === Mode.BLACKLIST) {
-            return !doesContain;
-        }
+    return doesContain;
+  }
 
-        return doesContain;
+  toJSON() {
+    if (this[$authr].mode === Mode.WILDCARD) {
+      return "*";
     }
-
-    toJSON() {
-        if (this[$authr].mode === Mode.WILDCARD) {
-            return '*';
-        }
-        let set: any = this[$authr].items;
-        if (set.length === 1) {
-            [set] = set;
-        }
-        if (this[$authr].mode === Mode.BLACKLIST) {
-            set = { [NOT]: set };
-        }
-        return set;
+    let set: any = this[$authr].items;
+    if (set.length === 1) {
+      [set] = set;
     }
+    if (this[$authr].mode === Mode.BLOCKLIST) {
+      set = { [NOT]: set };
+    }
+    return set;
+  }
 }
