@@ -6,13 +6,13 @@ use JsonSerializable;
 
 final class SlugSet implements JsonSerializable
 {
-    const MODE_BLACKLIST = 0;
-    const MODE_WHITELIST = 1;
+    const MODE_BLOCKLIST = 0;
+    const MODE_ALLOWLIST = 1;
     const MODE_WILDCARD = 2;
 
     const NOT = '$not';
 
-    private $mode = self::MODE_WHITELIST;
+    private $mode = self::MODE_ALLOWLIST;
 
     /** @var string[] */
     private $items = [];
@@ -27,7 +27,7 @@ final class SlugSet implements JsonSerializable
             $this->mode = static::MODE_WILDCARD;
         } else {
             if (is_array($spec) && key($spec) === static::NOT) {
-                $this->mode = static::MODE_BLACKLIST;
+                $this->mode = static::MODE_BLOCKLIST;
                 $spec = $spec[static::NOT];
             }
             if (is_string($spec)) {
@@ -50,7 +50,7 @@ final class SlugSet implements JsonSerializable
             return true;
         }
         $doesContain = in_array($needle, $this->items, true);
-        if ($this->mode === static::MODE_BLACKLIST) {
+        if ($this->mode === static::MODE_BLOCKLIST) {
             return !$doesContain;
         }
 
@@ -69,7 +69,7 @@ final class SlugSet implements JsonSerializable
         if (count($set) === 1) {
             $set = $set[0];
         }
-        if ($this->mode === static::MODE_BLACKLIST) {
+        if ($this->mode === static::MODE_BLOCKLIST) {
             $set = [static::NOT => $set];
         }
 

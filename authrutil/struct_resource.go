@@ -1,13 +1,11 @@
 package authrutil
 
 import (
+	"go/ast"
 	"reflect"
-	"regexp"
 
 	"github.com/cloudflare/authr"
 )
-
-var exportedField = regexp.MustCompile("^[A-Z]")
 
 type structResource struct {
 	typ string
@@ -19,7 +17,7 @@ func (s structResource) GetResourceType() (string, error) {
 }
 
 func (s structResource) GetResourceAttribute(key string) (interface{}, error) {
-	if !exportedField.MatchString(key) {
+	if !ast.IsExported(key) {
 		return nil, nil
 	}
 	f, ok := s.v.Type().FieldByName(key)

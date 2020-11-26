@@ -24,7 +24,7 @@ class SlugSetTest extends TestCase
         $this->assertFalse($set->contains('thisthing'));
     }
 
-    public function testBlacklistSet()
+    public function testBlocklistSet()
     {
         $set = new SlugSet([
             SlugSet::NOT => ['foo', 'bar'],
@@ -42,7 +42,7 @@ class SlugSetTest extends TestCase
         $this->assertFalse($set->contains('thisthing'));
     }
 
-    public function testStringTransformBlacklist()
+    public function testStringTransformBlocklist()
     {
         $set = new SlugSet([SlugSet::NOT => 'foo']);
         $this->assertFalse($set->contains('foo'));
@@ -71,7 +71,7 @@ class SlugSetTest extends TestCase
                 new SlugSet(['foo', 'bar']),
                 '["foo","bar"]',
             ],
-            'blacklist set' => [
+            'blocklist set' => [
                 new SlugSet([SlugSet::NOT => ['bar', 'foo']]),
                 '{"$not":["bar","foo"]}',
             ],

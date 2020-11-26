@@ -1,0 +1,23 @@
+name: PHP Tests
+
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron: "0 0 * * 0" # weekly
+
+jobs:
+  test-php:
+    runs-on: ubuntu-latest
+    name: Test PHP (${{ matrix.php }})
+    strategy:
+      matrix:
+        php: ["7.3", "7.4", "8.0"]
+    steps:
+      - uses: actions/checkout@v2
+      - uses: shivammathur/setup-php@2.9.0
+        with:
+          php-version: ${{ matrix.php }}
+      - name: Test
+        run: |
+          make -C php/ setup test

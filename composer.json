@@ -1,34 +1,38 @@
 {
-    "name": "cloudflare/authr",
-    "description": "a flexible, expressive, language-agnostic access-control framework",
-    "type": "library",
-    "require-dev": {
-        "phpunit/phpunit": "^5.7"
-    },
-    "archive": {
-        "exclude": ["/js", "/contrib", "/*.go"]
-    },
-    "authors": [
-        {
-            "name": "nick comer",
-            "email": "nicholas@cloudflare.com"
-        }
-    ],
-    "autoload": {
-        "psr-4": {
-            "Cloudflare\\": "php/src/"
-        }
-    },
-    "autoload-dev": {
-      "psr-4": {
-        "Cloudflare\\Test\\": "php/test/"
-      }
-    },
-    "minimum-stability": "stable",
-    "config": {
-        "vendor-dir": "php/vendor"
-    },
-    "require": {
-        "psr/log": "^1.0"
+  "name": "cloudflare/authr",
+  "description": "a flexible, expressive, language-agnostic access-control framework",
+  "type": "library",
+  "require-dev": {
+  },
+  "archive": {
+    "exclude": [
+      "/js",
+      "/contrib",
+      "/*.go"
+    ]
+  },
+  "authors": [
+    {
+      "name": "nick comer",
+      "email": "nicholas@cloudflare.com"
     }
+  ],
+  "autoload": {
+    "psr-4": {
+      "Cloudflare\\": "php/src/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "Cloudflare\\Test\\": "php/test/"
+    }
+  },
+  "minimum-stability": "stable",
+  "config": {
+    "vendor-dir": "php/vendor"
+  },
+  "require": {
+    "psr/log": "^1.0",
+    "phpunit/phpunit": "^9.4"
+  }
 }
