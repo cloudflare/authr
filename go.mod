@@ -1,4 +1,4 @@
-module github.com/cloudflare/authr
+module github.com/cloudflare/authr/v3
 
 go 1.15
 

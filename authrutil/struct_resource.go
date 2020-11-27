@@ -4,7 +4,7 @@ import (
 	"go/ast"
 	"reflect"
 
-	"github.com/cloudflare/authr"
+	"github.com/cloudflare/authr/v3"
 )
 
 type structResource struct {
